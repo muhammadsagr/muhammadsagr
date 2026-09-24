@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة الموارد البشرية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@500;600&display=swap">
+<style>
+  /* ============ الألوان (الوضع الفاتح) ============ */
+  :root {
+    --bg: #f2f4f7;
+    --surface: #fdfdfc;
+    --surface-2: #eef2f7;
+    --ink: #111821;
+    --ink-2: #4a5361;
+    --muted: #7a8391;
+    --grid: #e3e6eb;
+    --baseline: #c5cbd3;
+    --border: rgba(17, 24, 33, 0.10);
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --s1: #2a78d6;           /* السلسلة الأولى: أزرق */
+    --s2: #eb6834;           /* السلسلة الثانية: برتقالي */
+    --good: #0ca30c;
+    --good-ink: #006300;
+    --critical: #d03b3b;
+    --tile: #e8f0fb;
+    --font: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+    --display: "Readex Pro", "IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+  }
+  /* ============ الوضع الداكن ============ */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0e1013; --surface: #1a1c1f; --surface-2: #22262b;
+      --ink: #f4f5f7; --ink-2: #c3c7cd; --muted: #8b929c;
+      --grid: #2a2e33; --baseline: #3b4047; --border: rgba(255, 255, 255, 0.10);
+      --accent: #3987e5; --s1: #3987e5; --s2: #d95926;
+      --good-ink: #0ca30c; --tile: #16263a;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e1013; --surface: #1a1c1f; --surface-2: #22262b;
+    --ink: #f4f5f7; --ink-2: #c3c7cd; --muted: #8b929c;
+    --grid: #2a2e33; --baseline: #3b4047; --border: rgba(255, 255, 255, 0.10);
+    --accent: #3987e5; --s1: #3987e5; --s2: #d95926;
+    --good-ink: #0ca30c; --tile: #16263a;
+  }
+
+  /* ============ التخطيط العام ============ */
+  body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.6; }
+  .app { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 24px 48px; display: grid; gap: 28px; }
+  h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.3; }
+  h1 { font-size: 1.75rem; font-weight: 600; }
+  h2 { font-size: 1.2rem; font-weight: 600; }
+  h3 { font-size: 1rem; font-weight: 500; }
+  p { margin: 0; }
+  .muted { color: var(--muted); font-size: 0.85rem; }
+
+  header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+  header.top .sub { color: var(--ink-2); margin-top: 4px; }
+  .badge { display: inline-block; font-size: 0.75rem; letter-spacing: 0.02em; background: var(--tile); color: var(--accent); padding: 2px 10px; border-radius: 999px; font-weight: 600; }
+
+  /* ============ الفلاتر ============ */
+  .filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .field { display: grid; gap: 4px; min-width: 0; }
+  .field label { font-size: 0.8rem; color: var(--ink-2); font-weight: 500; }
+  select, input { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--surface); border: 1px solid var(--baseline); border-radius: 8px; padding: 7px 10px; min-width: 0; }
+  .filters select { width: 170px; max-width: 100%; }
+  button { font: inherit; font-size: 0.9rem; font-weight: 500; cursor: pointer; border-radius: 8px; padding: 7px 14px; border: 1px solid var(--baseline); background: var(--surface); color: var(--ink); }
+  button:hover { background: var(--surface-2); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.primary:hover { filter: brightness(1.08); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .filters .spacer { flex: 1; }
+  .filters .count { font-size: 0.85rem; color: var(--ink-2); align-self: center; }
+
+  /* ============ المؤشرات ============ */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: grid; gap: 2px; align-content: start; }
+  .kpi .label { font-size: 0.82rem; color: var(--ink-2); font-weight: 500; }
+  .kpi .value { font-family: var(--display); font-size: 1.85rem; font-weight: 600; line-height: 1.25; }
+  .kpi .value small { font-size: 0.95rem; color: var(--muted); font-weight: 500; }
+  .kpi .note { font-size: 0.78rem; color: var(--muted); }
+
+  /* ============ الأقسام واللوحات ============ */
+  section { display: grid; gap: 14px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+  .panel-head { display: grid; gap: 2px; }
+  .chart { width: 100%; min-height: 60px; }
+  .chart svg { display: block; direction: ltr; overflow: visible; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.85rem; color: var(--ink-2); list-style: none; margin: 0; padding: 0; }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .sw.s1 { background: var(--s1); } .sw.s2 { background: var(--s2); }
+  .empty { color: var(--muted); font-size: 0.9rem; padding: 24px 0; text-align: center; }
+
+  /* عناصر الرسوم (SVG) */
+  svg text { font-family: var(--font); }
+  .bar, .s1 { fill: var(--s1); }
+  .s2 { fill: var(--s2); }
+  .line.s1 { fill: none; stroke: var(--s1); stroke-width: 2; }
+  .line.s2 { fill: none; stroke: var(--s2); stroke-width: 2; }
+  .dot { stroke: var(--surface); stroke-width: 2; }
+  .slice { stroke: var(--surface); stroke-width: 2; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .base { stroke: var(--baseline); stroke-width: 1; }
+  .tick, .xl { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .lbl { fill: var(--ink-2); font-size: 12.5px; }
+  .val { fill: var(--ink); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .end-lbl { font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+  .center-big { fill: var(--ink); font-family: var(--display); font-size: 26px; font-weight: 600; }
+  .center-sm { fill: var(--muted); font-size: 12px; }
+  .hit { fill: transparent; }
+  .mark:hover .bar, .mark:hover .slice { filter: brightness(1.1); }
+  .mark:hover .hit { fill: var(--ink); fill-opacity: 0.04; }
+  .xhair { stroke: var(--baseline); stroke-width: 1; visibility: hidden; pointer-events: none; }
+  .mark:hover .xhair { visibility: visible; }
+
+  .donut-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px 32px; }
+  .donut-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .donut-legend li { display: grid; grid-template-columns: 14px auto; column-gap: 8px; align-items: center; }
+  .donut-legend .n { grid-column: 2; font-family: var(--display); font-size: 1.2rem; font-weight: 600; }
+  .donut-legend .n small { color: var(--muted); font-size: 0.8rem; font-weight: 500; font-family: var(--font); }
+
+  /* التلميح عند المرور بالماوس */
+  #tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 0.82rem; line-height: 1.5; padding: 6px 10px; border-radius: 8px; max-width: 260px; transform: translate(-50%, calc(-100% - 12px)); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); }
+  #tip b { font-weight: 600; }
+
+  /* ============ الجدول ============ */
+  .table-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .table-tools input { width: 280px; max-width: 100%; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 9px 12px; white-space: nowrap; }
+  thead th { background: var(--surface-2); font-weight: 600; color: var(--ink-2); font-size: 0.8rem; position: sticky; top: 0; }
+  thead th button { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; }
+  thead th button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  tbody tr + tr td { border-top: 1px solid var(--border); }
+  tbody tr:hover td { background: var(--surface-2); }
+  td.num { text-align: left; }
+  .rating { letter-spacing: 1px; color: var(--accent); }
+  .rating .off { color: var(--grid); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 500; }
+  .chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .chip.active { color: var(--good-ink); }
+  .chip.left { color: var(--muted); }
+  .pager { display: flex; gap: 8px; align-items: center; justify-content: flex-start; font-size: 0.85rem; color: var(--ink-2); }
+
+  /* ============ نموذج الإضافة ============ */
+  form.add { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+  form.add input, form.add select { width: 100%; }
+  form.add .actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .msg { font-size: 0.88rem; }
+  .msg.ok { color: var(--good-ink); }
+  .msg.err { color: var(--critical); }
+
+  footer { color: var(--muted); font-size: 0.8rem; }
+
+  @media (max-width: 520px) {
+    .app { padding-inline: 16px; }
+    h1 { font-size: 1.4rem; }
+    .filters select { width: 100%; }
+    .filters .field { flex: 1 1 140px; }
+    .kpi .value { font-size: 1.5rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<div class="app" dir="rtl" lang="ar">
+  <header class="top">
+    <div>
+      <span class="badge">بيانات افتراضية</span>
+      <h1>لوحة معلومات الموارد البشرية</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+  </header>
+
+  <!-- الفلاتر -->
+  <div class="filters" role="group" aria-label="الفلاتر">
+    <div class="field"><label for="f-dept">القسم</label><select id="f-dept"></select></div>
+    <div class="field"><label for="f-city">المدينة</label><select id="f-city"></select></div>
+    <div class="field"><label for="f-gender">الجنس</label><select id="f-gender"></select></div>
+    <button type="button" id="btn-reset">مسح الفلاتر</button>
+    <span class="spacer"></span>
+    <span class="count" id="count"></span>
+    <button type="button" id="btn-new">توليد بيانات جديدة</button>
+  </div>
+
+  <!-- المؤشرات الرئيسية -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- التركيبة الوظيفية -->
+  <section>
+    <div class="section-head"><h2>التركيبة الوظيفية</h2><span class="muted">الموظفون النشطون فقط</span></div>
+    <div class="grid">
+      <div class="panel"><div class="panel-head"><h3>الموظفون حسب القسم</h3></div><div class="chart" id="c-dept"></div></div>
+      <div class="panel"><div class="panel-head"><h3>التوزيع حسب الجنس</h3></div><div class="chart" id="c-gender"></div></div>
+      <div class="panel">
+        <div class="panel-head"><h3>التعيينات مقابل ترك العمل سنوياً</h3><p class="muted">السنة الحالية حتى تاريخ اليوم</p></div>
+        <ul class="legend"><li><span class="sw s1"></span>تعيينات</li><li><span class="sw s2"></span>ترك العمل</li></ul>
+        <div class="chart" id="c-trend"></div>
+      </div>
+      <div class="panel"><div class="panel-head"><h3>توزيع الأعمار</h3><p class="muted">فئات كل 3 سنوات</p></div><div class="chart" id="c-age"></div></div>
+      <div class="panel"><div class="panel-head"><h3>الموظفون حسب المدينة</h3></div><div class="chart" id="c-city"></div></div>
+      <div class="panel"><div class="panel-head"><h3>المؤهل العلمي</h3></div><div class="chart" id="c-edu"></div></div>
+    </div>
+  </section>
+
+  <!-- الرواتب والأداء -->
+  <section>
+    <div class="section-head"><h2>الرواتب والأداء</h2><span class="muted">الراتب الشهري الإجمالي</span></div>
+    <div class="grid">
+      <div class="panel"><div class="panel-head"><h3>متوسط الراتب حسب القسم</h3><p class="muted">مرّر الماوس لرؤية أدنى وأعلى راتب</p></div><div class="chart" id="c-salary"></div></div>
+      <div class="panel"><div class="panel-head"><h3>توزيع تقييمات الأداء</h3><p class="muted">1 = ضعيف · 5 = ممتاز</p></div><div class="chart" id="c-perf"></div></div>
+    </div>
+  </section>
+
+  <!-- ترك العمل -->
+  <section>
+    <div class="section-head"><h2>ترك العمل</h2><span class="muted">كل من ترك العمل منذ التعيين</span></div>
+    <div class="grid">
+      <div class="panel"><div class="panel-head"><h3>أسباب ترك العمل</h3></div><div class="chart" id="c-reasons"></div></div>
+      <div class="panel"><div class="panel-head"><h3>نسبة ترك العمل حسب القسم</h3><p class="muted">من تركوا العمل ÷ كل من عُيّنوا في القسم</p></div><div class="chart" id="c-turn"></div></div>
+    </div>
+  </section>
+
+  <!-- سجل الموظفين -->
+  <section>
+    <div class="section-head"><h2>سجل الموظفين</h2><span class="muted">اضغط على عنوان العمود للترتيب</span></div>
+    <div class="table-tools">
+      <input type="search" id="q" placeholder="ابحث بالاسم أو الرقم أو المسمى" aria-label="بحث">
+      <span class="muted" id="t-count"></span>
+    </div>
+    <div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    <div class="pager">
+      <button type="button" id="prev">السابق</button>
+      <span id="page-info"></span>
+      <button type="button" id="next">التالي</button>
+    </div>
+  </section>
+
+  <!-- إضافة موظف -->
+  <section>
+    <div class="section-head"><h2>إضافة موظف</h2><span class="muted">يُضاف إلى البيانات الحالية ويظهر فوراً في اللوحة</span></div>
+    <div class="panel">
+      <form class="add" id="add-form" novalidate>
+        <div class="field"><label for="a-name">الاسم</label><input id="a-name" placeholder="مثال: سارة الأنصاري" autocomplete="off"></div>
+        <div class="field"><label for="a-gender">الجنس</label><select id="a-gender"><option>ذكر</option><option>أنثى</option></select></div>
+        <div class="field"><label for="a-age">العمر</label><input id="a-age" type="number" min="18" max="70" value="30"></div>
+        <div class="field"><label for="a-dept">القسم</label><select id="a-dept"></select></div>
+        <div class="field"><label for="a-title">المسمى الوظيفي</label><select id="a-title"></select></div>
+        <div class="field"><label for="a-city">المدينة</label><select id="a-city"></select></div>
+        <div class="field"><label for="a-edu">المؤهل</label><select id="a-edu"></select></div>
+        <div class="field"><label for="a-salary">الراتب الشهري</label><input id="a-salary" type="number" min="3000" max="100000" step="500" value="10000"></div>
+        <div class="field"><label for="a-perf">تقييم الأداء (1-5)</label><select id="a-perf"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select></div>
+        <div class="actions"><button type="submit" class="primary">حفظ الموظف</button><span class="msg" id="a-msg" role="status"></span></div>
+      </form>
+    </div>
+  </section>
+
+  <footer>جميع الأسماء والأرقام في هذه اللوحة مولَّدة عشوائياً لأغراض التجربة ولا تمثّل أشخاصاً حقيقيين.</footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+/* =====================================================================
+   1) البيانات الافتراضية
+   ===================================================================== */
+const FN_M = ["محمد", "أحمد", "خالد", "عبدالله", "علي", "عمر", "يوسف", "سعد", "فهد", "حسن", "إبراهيم", "مصطفى", "طارق", "ماجد", "سامي"];
+const FN_F = ["فاطمة", "مريم", "نورة", "سارة", "هند", "ريم", "ليلى", "منى", "دعاء", "آمنة", "رنا", "هدى", "أسماء", "لمى", "جود"];
+const LN = ["العتيبي", "الشمري", "القحطاني", "الزهراني", "المصري", "الحربي", "الدوسري", "السيد", "الغامدي", "صقر", "المالكي", "النجار", "حسين", "إبراهيم", "الأنصاري"];
+
+// القسم: [المسميات الوظيفية, متوسط الراتب الأساسي, وزن عدد الموظفين]
+const DEPTS = {
+  "تقنية المعلومات": [["مطور برمجيات", "مهندس شبكات", "محلل بيانات", "مدير مشاريع تقنية"], 14000, 0.22],
+  "المبيعات": [["مندوب مبيعات", "مشرف مبيعات", "مدير حسابات"], 9000, 0.24],
+  "الموارد البشرية": [["أخصائي توظيف", "أخصائي رواتب", "مدير موارد بشرية"], 10000, 0.08],
+  "المالية": [["محاسب", "محلل مالي", "مدقق داخلي"], 12000, 0.12],
+  "التسويق": [["أخصائي تسويق رقمي", "مصمم جرافيك", "مدير علامة تجارية"], 10500, 0.10],
+  "العمليات": [["منسق عمليات", "مشرف مستودع", "أخصائي لوجستيات"], 8500, 0.16],
+  "خدمة العملاء": [["ممثل خدمة عملاء", "مشرف مركز اتصال"], 7000, 0.08],
+};
+const CITIES = ["الرياض", "جدة", "الدمام", "القاهرة", "دبي"];
+const CITY_W = [0.35, 0.22, 0.13, 0.18, 0.12];
+const EDU = ["ثانوية", "دبلوم", "بكالوريوس", "ماجستير", "دكتوراه"];
+const EDU_W = [0.08, 0.17, 0.55, 0.17, 0.03];
+const REASONS = ["فرصة أفضل", "أسباب شخصية", "الراتب", "بيئة العمل", "إنهاء عقد", "تقاعد"];
+
+const DAY = 864e5;
+const TODAY = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
+// مولّد أرقام عشوائية ثابت (نفس البذرة = نفس البيانات)
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function generateEmployees(n, seed) {
+  const r = mulberry32(seed);
+  const normal = (m, s) => { let u = 0; while (!u) u = r(); return m + s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+  const pick = a => a[Math.floor(r() * a.length)];
+  const wpick = (a, w) => { let x = r() * w.reduce((s, v) => s + v, 0); for (let i = 0; i < a.length; i++) { x -= w[i]; if (x < 0) return a[i]; } return a[a.length - 1]; };
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const deptNames = Object.keys(DEPTS), deptW = deptNames.map(k => DEPTS[k][2]);
+
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const gender = r() < 0.62 ? "ذكر" : "أنثى";
+    const first = pick(gender === "ذكر" ? FN_M : FN_F);
+    const dept = wpick(deptNames, deptW);
+    const [titles, base] = DEPTS[dept];
+    const ti = Math.floor(r() * titles.length);
+    const age = Math.round(clamp(normal(34, 8), 21, 60));
+    const hireDays = 30 + Math.floor(r() * (3650 - 30));
+    const hire = new Date(TODAY.getTime() - hireDays * DAY);
+    // الراتب يرتفع مع المستوى الوظيفي وسنوات الخبرة
+    const salary = Math.round(base * (1 + 0.25 * ti) * (1 + 0.03 * hireDays / 365) * normal(1, 0.1) / 10) * 10;
+    const perf = clamp(Math.round(normal(3.4, 0.9)), 1, 5);
+    // احتمال ترك العمل أعلى لضعيفي الأداء
+    const left = r() < (perf <= 2 ? 0.28 : 0.14);
+    let exit = null, reason = null;
+    if (left && hireDays > 60) {
+      exit = new Date(hire.getTime() + (60 + Math.floor(r() * (hireDays - 60))) * DAY);
+      reason = pick(REASONS);
+    }
+    rows.push({
+      id: "EMP" + (1001 + i), name: first + " " + pick(LN), gender, age, dept,
+      title: titles[ti], city: wpick(CITIES, CITY_W), edu: wpick(EDU, EDU_W), hire, salary, perf,
+      status: exit ? "مستقيل" : "نشط", exit, reason,
+    });
+  }
+  return rows;
+}
+
+/* =====================================================================
+   2) أدوات مساعدة
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const nf = v => Math.round(v).toLocaleString("en-US");
+const pad = n => String(n).padStart(2, "0");
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const countBy = (arr, fn) => arr.reduce((m, x) => m.set(fn(x), (m.get(fn(x)) || 0) + 1), new Map());
+const mean = a => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
+
+function fillSelect(el, options, allLabel) {
+  el.innerHTML = (allLabel ? `<option value="">${allLabel}</option>` : "") +
+    options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join("");
+}
+
+function niceTicks(max, n = 4) {
+  max = max || 1;
+  const raw = max / n, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p;
+  const step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+  const out = [];
+  for (let v = 0; v <= Math.ceil(max / step) * step + 1e-9; v += step) out.push(v);
+  return out;
+}
+
+const svgOpen = (W, H, label) => `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label || "")}">`;
+// عمود بطرف علوي مستدير
+const colPath = (x, y, w, h, r) => { r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; };
+// شريط أفقي ينمو لليسار بطرف مستدير
+const hbarPath = (x, y, w, h, r) => { r = Math.min(r, w, h / 2); return `M${x + w},${y}H${x + r}Q${x},${y} ${x},${y + r}V${y + h - r}Q${x},${y + h} ${x + r},${y + h}H${x + w}Z`; };
+
+/* =====================================================================
+   3) الرسوم البيانية (SVG بدون مكتبات)
+   ===================================================================== */
+
+// أشرطة أفقية: التسمية يميناً والشريط يمتد لليسار
+function hbar(el, items, { fmt = nf, tip } = {}) {
+  if (!items.length) { el.innerHTML = `<p class="empty">لا توجد بيانات</p>`; return; }
+  const W = el.clientWidth || 500, rowH = 32, H = items.length * rowH + 4;
+  const labelW = Math.min(130, W * 0.36), valW = 64;
+  const x0 = W - labelW - 10;
+  const max = Math.max(...items.map(d => d.value), 1);
+  const scale = (x0 - valW) / max;
+  let s = svgOpen(W, H);
+  items.forEach((d, i) => {
+    const y = i * rowH + 2, len = Math.max(d.value * scale, d.value > 0 ? 2 : 0);
+    const t = tip ? tip(d) : `<b>${esc(d.label)}</b><br>${fmt(d.value)}`;
+    s += `<g class="mark" data-tip="${esc(t)}">
+      <rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}" rx="6"/>
+      <text class="lbl" x="${W - 2}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="central">${esc(d.label)}</text>
+      ${len ? `<path class="bar" d="${hbarPath(x0 - len, y + 6, len, rowH - 12, 4)}"/>` : ""}
+      <text class="val" x="${x0 - len - 6}" y="${y + rowH / 2}" text-anchor="end" dominant-baseline="central">${fmt(d.value)}</text>
+    </g>`;
+  });
+  s += `<line class="base" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
+  el.innerHTML = s + "</svg>";
+}
+
+// أعمدة رأسية. rtl = أول عنصر على اليمين. axis = إظهار محور القيم بدل الأرقام فوق الأعمدة
+function vbar(el, items, { fmt = nf, tip, rtl = true, axis = false, H = 230 } = {}) {
+  if (!items.some(d => d.value > 0)) { el.innerHTML = `<p class="empty">لا توجد بيانات</p>`; return; }
+  const W = el.clientWidth || 500, padT = 22, padB = 28, axisW = axis ? 40 : 4;
+  const L = 4, R = W - axisW, B = H - padB;
+  const max = Math.max(...items.map(d => d.value), 1);
+  const ticks = axis ? niceTicks(max) : [0, max];
+  const top = ticks[ticks.length - 1];
+  const y = v => B - (v / top) * (B - padT);
+  const band = (R - L) / items.length, bw = Math.min(52, band * 0.64);
+  const labelEvery = Math.max(1, Math.ceil(items.length / Math.max(1, Math.floor((R - L) / 58))));
+  let s = svgOpen(W, H);
+  if (axis) ticks.forEach(v => {
+    s += `<line class="grid-line" x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}"/>
+          <text class="tick" x="${R + 8}" y="${y(v)}" dominant-baseline="central">${nf(v)}</text>`;
+  });
+  items.forEach((d, i) => {
+    const cx = rtl ? R - (i + 0.5) * band : L + (i + 0.5) * band;
+    const yy = y(d.value), h = B - yy;
+    const t = tip ? tip(d) : `<b>${esc(d.label)}</b><br>${fmt(d.value)}`;
+    s += `<g class="mark" data-tip="${esc(t)}">
+      <rect class="hit" x="${cx - band / 2}" y="${padT - 18}" width="${band}" height="${B - padT + 18}" rx="6"/>
+      ${h > 0 ? `<path class="bar" d="${colPath(cx - bw / 2, yy, bw, h, 4)}"/>` : ""}
+      ${!axis ? `<text class="val" x="${cx}" y="${yy - 7}" text-anchor="middle">${fmt(d.value)}</text>` : ""}
+      ${i % labelEvery === 0 ? `<text class="xl" x="${cx}" y="${B + 18}" text-anchor="middle">${esc(d.label)}</text>` : ""}
+    </g>`;
+  });
+  s += `<line class="base" x1="${L}" x2="${R}" y1="${B}" y2="${B}"/>`;
+  el.innerHTML = s + "</svg>";
+}
+
+// مخطط خطي لسلسلتين مع خط تتبّع عند المرور
+function lineChart(el, xs, series, { H = 250 } = {}) {
+  if (!xs.length) { el.innerHTML = `<p class="empty">لا توجد بيانات</p>`; return; }
+  // محور القيم يساراً، وأسماء السلاسل عند نهاية الخطوط يميناً
+  const W = el.clientWidth || 500, padT = 16, padB = 28, axisW = 36, endW = 70;
+  const L = axisW, R = W - endW, B = H - padB;
+  const max = Math.max(1, ...series.flatMap(s => s.values));
+  const ticks = niceTicks(max), top = ticks[ticks.length - 1];
+  const x = i => xs.length === 1 ? (L + R) / 2 : L + i * (R - L) / (xs.length - 1);
+  const y = v => B - (v / top) * (B - padT);
+  const labelEvery = Math.max(1, Math.ceil(xs.length / Math.max(1, Math.floor((R - L) / 48))));
+  let s = svgOpen(W, H);
+  ticks.forEach(v => {
+    s += `<line class="grid-line" x1="${L}" x2="${R}" y1="${y(v)}" y2="${y(v)}"/>
+          <text class="tick" x="${L - 8}" y="${y(v)}" text-anchor="end" dominant-baseline="central">${nf(v)}</text>`;
+  });
+  s += `<line class="base" x1="${L}" x2="${R}" y1="${B}" y2="${B}"/>`;
+  // مناطق المرور (خلف الخطوط)
+  const half = xs.length > 1 ? (R - L) / (xs.length - 1) / 2 : (R - L) / 2;
+  xs.forEach((xv, i) => {
+    const t = `<b>${xv}</b><br>` + series.map(sr => `${esc(sr.name)}: ${nf(sr.values[i])}`).join("<br>");
+    s += `<g class="mark" data-tip="${esc(t)}">
+      <rect class="hit" x="${x(i) - half}" y="${padT}" width="${half * 2}" height="${B - padT}"/>
+      <line class="xhair" x1="${x(i)}" x2="${x(i)}" y1="${padT}" y2="${B}"/>
+    </g>`;
+    if (i % labelEvery === 0)
+      s += `<text class="xl" x="${x(i)}" y="${B + 18}" text-anchor="middle">${xv}</text>`;
+  });
+  // مواضع أسماء السلاسل بجانب آخر نقطة، مع إبعادها عن بعض إذا تقاربت
+  const li = xs.length - 1;
+  const ends = series.map(sr => ({ sr, y: y(sr.values[li]) })).sort((a, b) => a.y - b.y);
+  for (let k = 1; k < ends.length; k++) ends[k].y = Math.max(ends[k].y, ends[k - 1].y + 16);
+  ends.forEach(e => { s += `<text class="end-lbl" x="${x(li) + 10}" y="${e.y}" dominant-baseline="central" pointer-events="none">${esc(e.sr.name)}</text>`; });
+  series.forEach(sr => {
+    s += `<path class="line ${sr.cls}" d="${sr.values.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("")}" pointer-events="none"/>`;
+    sr.values.forEach((v, i) => { s += `<circle class="dot ${sr.cls}" cx="${x(i)}" cy="${y(v)}" r="4" pointer-events="none"/>`; });
+  });
+  el.innerHTML = s + "</svg>";
+}
+
+// مخطط دائري مجوّف مع مفتاح يعرض الأعداد والنسب
+function donut(el, items, centerLabel) {
+  const total = items.reduce((s, d) => s + d.value, 0);
+  if (!total) { el.innerHTML = `<p class="empty">لا توجد بيانات</p>`; return; }
+  const S = 200, c = S / 2, r1 = 92, r0 = 60;
+  const pt = (r, a) => [c + r * Math.sin(a), c - r * Math.cos(a)];
+  let a0 = 0, s = svgOpen(S, S, "التوزيع حسب الجنس");
+  items.forEach(d => {
+    if (!d.value) return;
+    const a1 = a0 + Math.min(d.value / total * 2 * Math.PI, 2 * Math.PI - 1e-4);
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const [x0, y0] = pt(r1, a0), [x1, y1] = pt(r1, a1), [x2, y2] = pt(r0, a1), [x3, y3] = pt(r0, a0);
+    const t = `<b>${esc(d.label)}</b><br>${nf(d.value)} موظف (${(d.value / total * 100).toFixed(1)}%)`;
+    s += `<g class="mark" data-tip="${esc(t)}"><path class="slice ${d.cls}" d="M${x0},${y0}A${r1},${r1} 0 ${large} 1 ${x1},${y1}L${x2},${y2}A${r0},${r0} 0 ${large} 0 ${x3},${y3}Z"/></g>`;
+    a0 = a1;
+  });
+  s += `<text class="center-big" x="${c}" y="${c - 4}" text-anchor="middle" dominant-baseline="central">${nf(total)}</text>
+        <text class="center-sm" x="${c}" y="${c + 22}" text-anchor="middle">${centerLabel}</text></svg>`;
+  const legend = items.map(d => `<li><span class="sw ${d.cls}"></span><span>${esc(d.label)}</span>
+      <span class="n">${nf(d.value)} <small>${(d.value / total * 100).toFixed(1)}%</small></span></li>`).join("");
+  el.innerHTML = `<div class="donut-wrap">${s}<ul class="donut-legend">${legend}</ul></div>`;
+}
+
+/* =====================================================================
+   4) الحالة والرسم
+   ===================================================================== */
+let DATA = generateEmployees(500, 42);
+const table = { q: "", sort: "id", dir: 1, page: 0, size: 12 };
+const COLS = [
+  { k: "id", t: "الرقم الوظيفي" }, { k: "name", t: "الاسم" }, { k: "dept", t: "القسم" },
+  { k: "title", t: "المسمى الوظيفي" }, { k: "city", t: "المدينة" }, { k: "hire", t: "تاريخ التعيين" },
+  { k: "salary", t: "الراتب", num: true }, { k: "perf", t: "الأداء" }, { k: "status", t: "الحالة" },
+];
+
+function filtered() {
+  const d = $("f-dept").value, c = $("f-city").value, g = $("f-gender").value;
+  return DATA.filter(e => (!d || e.dept === d) && (!c || e.city === c) && (!g || e.gender === g));
+}
+
+function renderKpis(df, active, exited) {
+  const lastYear = new Date(TODAY); lastYear.setFullYear(lastYear.getFullYear() - 1);
+  const hires12 = df.filter(e => e.hire >= lastYear).length;
+  const exits12 = exited.filter(e => e.exit >= lastYear).length;
+  const turnover = active.length ? exits12 / active.length * 100 : 0;
+  const payroll = active.reduce((s, e) => s + e.salary, 0);
+  const top = active.filter(e => e.perf === 5).length;
+  const k = [
+    ["إجمالي الموظفين", nf(df.length), "يشمل من ترك العمل"],
+    ["الموظفون النشطون", nf(active.length), df.length ? `${(active.length / df.length * 100).toFixed(0)}% من الإجمالي` : "—"],
+    ["تعيينات آخر 12 شهراً", nf(hires12), `${nf(exits12)} تركوا العمل في الفترة نفسها`],
+    ["معدل الدوران السنوي", `${turnover.toFixed(1)}<small>%</small>`, "ترك العمل خلال 12 شهراً ÷ النشطين"],
+    ["متوسط الراتب الشهري", active.length ? nf(mean(active.map(e => e.salary))) : "—", `إجمالي الرواتب: ${nf(payroll)}`],
+    ["متوسط تقييم الأداء", active.length ? `${mean(active.map(e => e.perf)).toFixed(2)} <small>/ 5</small>` : "—", `${nf(top)} بتقييم ممتاز (5)`],
+  ];
+  $("kpis").innerHTML = k.map(([l, v, n]) => `<div class="kpi"><span class="label">${l}</span><span class="value">${v}</span><span class="note">${n}</span></div>`).join("");
+}
+
+function renderCharts(df, active, exited) {
+  const byCount = (arr, key) => [...countBy(arr, e => e[key])].map(([label, value]) => ({ label, value }));
+
+  hbar($("c-dept"), byCount(active, "dept").sort((a, b) => b.value - a.value),
+    { tip: d => `<b>${esc(d.label)}</b><br>${nf(d.value)} موظف نشط` });
+
+  const g = countBy(active, e => e.gender);
+  donut($("c-gender"), [
+    { label: "ذكور", value: g.get("ذكر") || 0, cls: "s1" },
+    { label: "إناث", value: g.get("أنثى") || 0, cls: "s2" },
+  ], "موظف نشط");
+
+  // اتجاه التعيينات وترك العمل
+  const years = [];
+  if (df.length) {
+    const y0 = Math.min(...df.map(e => e.hire.getFullYear()));
+    for (let y = y0; y <= TODAY.getFullYear(); y++) years.push(y);
+  }
+  const hiresBy = countBy(df, e => e.hire.getFullYear());
+  const exitsBy = countBy(exited, e => e.exit.getFullYear());
+  lineChart($("c-trend"), years, [
+    { name: "تعيينات", cls: "s1", values: years.map(y => hiresBy.get(y) || 0) },
+    { name: "ترك العمل", cls: "s2", values: years.map(y => exitsBy.get(y) || 0) },
+  ]);
+
+  // الأعمار في فئات من 3 سنوات
+  const bins = [];
+  for (let a = 21; a <= 60; a += 3) bins.push({ label: `${a}–${a + 2}`, lo: a, value: 0 });
+  active.forEach(e => { const b = bins[Math.min(bins.length - 1, Math.floor((e.age - 21) / 3))]; if (b) b.value++; });
+  vbar($("c-age"), bins, { rtl: false, axis: true, tip: d => `<b>العمر ${d.label}</b><br>${nf(d.value)} موظف` });
+
+  const cityC = countBy(active, e => e.city);
+  vbar($("c-city"), CITIES.map(c => ({ label: c, value: cityC.get(c) || 0 })).sort((a, b) => b.value - a.value));
+
+  const eduC = countBy(active, e => e.edu);
+  vbar($("c-edu"), EDU.map(x => ({ label: x, value: eduC.get(x) || 0 })));
+
+  // الرواتب حسب القسم
+  const sal = Object.keys(DEPTS).map(dpt => {
+    const s = active.filter(e => e.dept === dpt).map(e => e.salary);
+    return { label: dpt, value: mean(s), n: s.length, min: s.length ? Math.min(...s) : 0, max: s.length ? Math.max(...s) : 0 };
+  }).filter(d => d.n).sort((a, b) => b.value - a.value);
+  hbar($("c-salary"), sal, { tip: d => `<b>${esc(d.label)}</b><br>المتوسط: ${nf(d.value)}<br>الأدنى: ${nf(d.min)} · الأعلى: ${nf(d.max)}<br>${nf(d.n)} موظف` });
+
+  const perfC = countBy(active, e => e.perf);
+  vbar($("c-perf"), [1, 2, 3, 4, 5].map(p => ({ label: String(p), value: perfC.get(p) || 0 })),
+    { rtl: false, tip: d => `<b>تقييم ${d.label} من 5</b><br>${nf(d.value)} موظف` });
+
+  hbar($("c-reasons"), byCount(exited, "reason").sort((a, b) => b.value - a.value),
+    { tip: d => `<b>${esc(d.label)}</b><br>${nf(d.value)} حالة` });
+
+  const turn = Object.keys(DEPTS).map(dpt => {
+    const all = df.filter(e => e.dept === dpt), gone = all.filter(e => e.exit);
+    return { label: dpt, value: all.length ? gone.length / all.length * 100 : 0, n: all.length, g: gone.length };
+  }).filter(d => d.n).sort((a, b) => b.value - a.value);
+  hbar($("c-turn"), turn, { fmt: v => v.toFixed(1) + "%", tip: d => `<b>${esc(d.label)}</b><br>${d.value.toFixed(1)}%<br>${nf(d.g)} من أصل ${nf(d.n)}` });
+}
+
+function renderTable(df) {
+  const q = table.q.trim().toLowerCase();
+  let rows = q ? df.filter(e => (e.name + " " + e.id + " " + e.title).toLowerCase().includes(q)) : df.slice();
+  const k = table.sort;
+  rows.sort((a, b) => {
+    const x = a[k], y = b[k];
+    const c = x instanceof Date ? x - y : typeof x === "number" ? x - y : String(x).localeCompare(String(y), "ar");
+    return c * table.dir;
+  });
+  const pages = Math.max(1, Math.ceil(rows.length / table.size));
+  table.page = Math.min(table.page, pages - 1);
+  const slice = rows.slice(table.page * table.size, (table.page + 1) * table.size);
+
+  $("thead").innerHTML = "<tr>" + COLS.map(c => {
+    const arrow = c.k === k ? (table.dir > 0 ? "▲" : "▼") : "";
+    const sortState = c.k === k ? (table.dir > 0 ? "ascending" : "descending") : "none";
+    return `<th aria-sort="${sortState}" class="${c.num ? "num" : ""}"><button type="button" data-k="${c.k}">${c.t} <span aria-hidden="true">${arrow}</span></button></th>`;
+  }).join("") + "</tr>";
+
+  $("tbody").innerHTML = slice.length ? slice.map(e => `<tr>
+      <td>${e.id}</td><td>${esc(e.name)}</td><td>${esc(e.dept)}</td><td>${esc(e.title)}</td><td>${esc(e.city)}</td>
+      <td>${fmtDate(e.hire)}</td><td class="num">${nf(e.salary)}</td>
+      <td><span class="rating" aria-label="${e.perf} من 5">${"●".repeat(e.perf)}<span class="off">${"●".repeat(5 - e.perf)}</span></span></td>
+      <td><span class="chip ${e.exit ? "left" : "active"}">${e.exit ? "ترك العمل " + fmtDate(e.exit) : "نشط"}</span></td>
+    </tr>`).join("") : `<tr><td colspan="${COLS.length}" class="empty">لا توجد نتائج مطابقة للبحث</td></tr>`;
+
+  $("t-count").textContent = `${nf(rows.length)} نتيجة`;
+  $("page-info").textContent = `صفحة ${table.page + 1} من ${pages}`;
+  $("prev").disabled = table.page === 0;
+  $("next").disabled = table.page >= pages - 1;
+}
+
+function render() {
+  const df = filtered();
+  const active = df.filter(e => !e.exit), exited = df.filter(e => e.exit);
+  $("count").textContent = `يعرض ${nf(df.length)} من ${nf(DATA.length)} موظف`;
+  $("subtitle").textContent = `${nf(DATA.length)} موظف في ${Object.keys(DEPTS).length} أقسام و${CITIES.length} مدن · محدّث حتى ${fmtDate(TODAY)}`;
+  renderKpis(df, active, exited);
+  renderCharts(df, active, exited);
+  renderTable(df);
+}
+
+/* =====================================================================
+   5) التفاعل
+   ===================================================================== */
+fillSelect($("f-dept"), Object.keys(DEPTS), "كل الأقسام");
+fillSelect($("f-city"), CITIES, "كل المدن");
+fillSelect($("f-gender"), ["ذكر", "أنثى"], "الكل");
+["f-dept", "f-city", "f-gender"].forEach(id => $(id).addEventListener("change", () => { table.page = 0; render(); }));
+$("btn-reset").addEventListener("click", () => { ["f-dept", "f-city", "f-gender"].forEach(id => $(id).value = ""); table.page = 0; render(); });
+$("btn-new").addEventListener("click", () => { DATA = generateEmployees(500, Date.now() % 1e9); table.page = 0; render(); });
+
+$("q").addEventListener("input", e => { table.q = e.target.value; table.page = 0; renderTable(filtered()); });
+$("thead").addEventListener("click", e => {
+  const b = e.target.closest("button[data-k]"); if (!b) return;
+  if (table.sort === b.dataset.k) table.dir *= -1; else { table.sort = b.dataset.k; table.dir = 1; }
+  renderTable(filtered());
+});
+$("prev").addEventListener("click", () => { table.page--; renderTable(filtered()); });
+$("next").addEventListener("click", () => { table.page++; renderTable(filtered()); });
+
+// نموذج الإضافة: المسميات تتغير حسب القسم
+fillSelect($("a-dept"), Object.keys(DEPTS));
+fillSelect($("a-city"), CITIES);
+fillSelect($("a-edu"), EDU); $("a-edu").value = "بكالوريوس";
+const syncTitles = () => fillSelect($("a-title"), DEPTS[$("a-dept").value][0]);
+$("a-dept").addEventListener("change", syncTitles); syncTitles();
+
+$("add-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const msg = $("a-msg"), name = $("a-name").value.trim();
+  const age = +$("a-age").value, salary = +$("a-salary").value;
+  if (!name) { msg.className = "msg err"; msg.textContent = "اكتب اسم الموظف أولاً."; $("a-name").focus(); return; }
+  if (!(age >= 18 && age <= 70)) { msg.className = "msg err"; msg.textContent = "العمر يجب أن يكون بين 18 و 70."; return; }
+  if (!(salary >= 3000 && salary <= 100000)) { msg.className = "msg err"; msg.textContent = "الراتب يجب أن يكون بين 3,000 و 100,000."; return; }
+  const nextId = Math.max(...DATA.map(x => +x.id.slice(3))) + 1;
+  DATA.push({
+    id: "EMP" + nextId, name, gender: $("a-gender").value, age, dept: $("a-dept").value, title: $("a-title").value,
+    city: $("a-city").value, edu: $("a-edu").value, hire: new Date(TODAY), salary, perf: +$("a-perf").value,
+    status: "نشط", exit: null, reason: null,
+  });
+  msg.className = "msg ok"; msg.textContent = `تمت إضافة ${name} برقم EMP${nextId}.`;
+  $("a-name").value = "";
+  render();
+});
+
+// التلميح عند المرور على أي عنصر في الرسوم
+const tip = $("tip");
+function showTip(e) {
+  const m = e.target.closest && e.target.closest(".mark");
+  if (!m) { tip.hidden = true; return; }
+  tip.innerHTML = m.dataset.tip;
+  tip.hidden = false;
+  const w = tip.offsetWidth / 2 + 8;
+  tip.style.left = Math.min(window.innerWidth - w, Math.max(w, e.clientX)) + "px";
+  tip.style.top = Math.max(tip.offsetHeight + 16, e.clientY) + "px";
+}
+document.addEventListener("pointermove", showTip);
+document.addEventListener("pointerdown", showTip);
+document.addEventListener("scroll", () => { tip.hidden = true; }, { passive: true });
+
+// إعادة رسم الرسوم عند تغيير عرض الشاشة
+let lastW = 0, timer;
+new ResizeObserver(entries => {
+  const w = Math.round(entries[0].contentRect.width);
+  if (w === lastW) return; lastW = w;
+  clearTimeout(timer); timer = setTimeout(render, 120);
+}).observe(document.querySelector(".app"));
+
+render();
+</script>
+</body>
+</html>
