@@ -13,9 +13,8 @@
 
 ## هيكل المشروع
 ```
-app.py              # واجهة لوحة المعلومات (Streamlit)
-data_generator.py   # توليد البيانات الافتراضية
-requirements.txt    # المكتبات المطلوبة
+data_generator.py   # التطبيق كاملاً: البيانات الافتراضية + لوحة المعلومات
+requirements.txt    # المكتبات المطلوبة (تُثبَّت تلقائياً عند التشغيل)
 .vscode/launch.json # إعداد التشغيل من Visual Studio Code (F5)
 ```
 
@@ -35,11 +34,12 @@ requirements.txt    # المكتبات المطلوبة
 4. اختر المفسّر: `Ctrl+Shift+P` ← `Python: Select Interpreter` ← اختر `.venv`.
 5. شغّل التطبيق بالضغط على **F5** (إعداد "تشغيل لوحة الموارد البشرية")، أو من الطرفية:
    ```bash
-   streamlit run app.py
+   python data_generator.py
    ```
+   أو افتح `data_generator.py` واضغط زر **Run ▶**.
 6. سيفتح المتصفح تلقائياً على `http://localhost:8501`.
 
-> لحفظ البيانات الافتراضية في ملف CSV: `python data_generator.py`
+> لحفظ البيانات في ملف CSV استخدم زر "تحميل البيانات" في تبويب بيانات الموظفين.
 
 ## ملاحظة عن Visual Studio (وليس VS Code)
 إذا كنت تستخدم **Visual Studio 2022**: ثبّت حمل العمل *Python development*، ثم

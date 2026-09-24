@@ -6,7 +6,7 @@
       "type": "debugpy",
       "request": "launch",
       "module": "streamlit",
-      "args": ["run", "${workspaceFolder}/app.py"],
+      "args": ["run", "${workspaceFolder}/data_generator.py"],
       "cwd": "${workspaceFolder}",
       "justMyCode": true
     }
