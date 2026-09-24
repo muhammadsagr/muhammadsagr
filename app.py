@@ -196,7 +196,7 @@ with tab_table:
     search = st.text_input("ابحث بالاسم أو الرقم الوظيفي")
     table = df
     if search:
-        mask = df["الاسم"].str.contains(search, case=False) | df["الرقم الوظيفي"].str.contains(search, case=False)
+        mask = df["الاسم"].str.contains(search, case=False, regex=False) | df["الرقم الوظيفي"].str.contains(search, case=False, regex=False)
         table = df[mask]
     st.dataframe(
         table, width="stretch", hide_index=True,
