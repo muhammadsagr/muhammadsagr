@@ -1,3 +1,6 @@
+> **جديد: [Organizational X-Ray](organizational_xray/README.md)** — نظام لتحليل الهيكل التنظيمي (Layers، Span of Control، Findings، What-If Simulator).
+> التشغيل: `cd organizational_xray && pip install -r requirements.txt && streamlit run app.py`
+
 # 👥 لوحة معلومات الموارد البشرية (Python + Streamlit)
 
 > **أسهل طريقة:** افتح الملف `hr_dashboard.html` بالضغط عليه مرتين، فيفتح في المتصفح مباشرة دون تثبيت أي شيء.
