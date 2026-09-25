@@ -1,9 +1,7 @@
 import pytest
 
-from analytics.simulations import SimulationError, apply_scenario, compare
-from data.loader import normalize
+from app import apply_scenario, compare, normalize, Settings, SimulationError
 from tests.conftest import make_model, make_raw
-from utils.config import Settings
 
 
 def run(rows, actions):
@@ -94,7 +92,7 @@ def test_scenario_chain_and_unknown_action(small_rows):
 
 
 def test_simulation_on_dummy(dummy):
-    from analytics.engine import OrgXRayEngine
+    from app import OrgXRayEngine
     e = OrgXRayEngine(dummy[0])
     out = e.simulate([{"type": "merge_departments", "departments": ["HRIS", "HR Operations"],
                        "new_name": "HR Operations & HRIS", "consolidate_heads": True}])

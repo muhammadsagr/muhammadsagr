@@ -1,14 +1,11 @@
 import pandas as pd
 
-from analytics.hierarchy import (
+from app import (
     department_heads,
     depth_stats,
     layer_count,
     level_depth_matrix,
     longest_chains,
-)
-from tests.conftest import make_model
-from utils.config import (
     RS_CEO,
     RS_CIRCULAR,
     RS_DISCONNECTED,
@@ -18,6 +15,7 @@ from utils.config import (
     RS_TERMINATED,
     RS_VALID,
 )
+from tests.conftest import make_model
 
 
 def status(model, nid):

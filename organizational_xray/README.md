@@ -14,13 +14,15 @@ Data → Rules → Calculations → Evidence → Findings → Visualization
 
 المتطلبات: Python 3.12+ (يعمل أيضًا على 3.11).
 
+**البرنامج كله في ملف واحد: `app.py`.**
+
 ```bash
 cd organizational_xray
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
+
+أو ببساطة `python app.py` (أو زر Run ▶ في VS Code): يثبّت المكتبات الناقصة تلقائيًا ثم يشغّل التطبيق عبر Streamlit.
 
 يفتح التطبيق على `http://localhost:8501` ويحلل البيانات الوهمية (~1,500 موظف) مباشرة — بدون قاعدة بيانات أو API خارجي.
 
@@ -33,8 +35,8 @@ pytest
 إعادة إنشاء ملف البيانات الوهمية وطباعة تقرير محسوب منه:
 
 ```bash
-python -m data.dummy_generator                 # 1,500 موظف، seed 42
-python -m data.dummy_generator --employees 10000 --seed 7 --no-save
+python app.py --generate                       # 1,500 موظف، seed 42 → data/sample/
+python app.py --generate --employees 10000 --seed 7
 ```
 
 ---
@@ -94,7 +96,7 @@ python -m data.dummy_generator --employees 10000 --seed 7 --no-save
 
 يتم **بناء الهيكل أولًا** (Blueprint لكل إدارة: عدد الطبقات والفرق ونطاق الإشراف ونسبة الشواغر)، ثم توليد الأشخاص بـ Faker ووضعهم في الوظائف، ثم إدخال مشكلات متعمدة وتسجيلها في Manifest. الإدارات مختلفة عمدًا: Operations عميقة جدًا (CEO → COO → VP → Senior Director → Director → Senior Manager → Manager → Supervisor → Employee)، بينما Business Development مسطحة (Director → موظفون)، و HRIS كثيفة المديرين، و Quality يديرها Director بـ17 موظفًا مباشرًا.
 
-**الأرقام الفعلية تُحسب ديناميكيًا** — من صفحة Import Data ← «وصف البيانات الحالية»، أو بالأمر `python -m data.dummy_generator` الذي يكتب التقرير. نسخة من التقرير للـseed الافتراضي في [DATASET.md](DATASET.md)، وملخصها:
+**الأرقام الفعلية تُحسب ديناميكيًا** — من صفحة Import Data ← «وصف البيانات الحالية»، أو بالأمر `python app.py --generate` الذي يكتب التقرير. نسخة من التقرير للـseed الافتراضي في [DATASET.md](DATASET.md)، وملخصها:
 
 - ~1,474 موظف نشط، 66 وظيفة شاغرة، 222 مديرًا، 24 إدارة في 7 قطاعات و4 وحدات أعمال
 - 9 طبقات هيكلية (عمق 1–8)، Span of Control: وسيط 6، متوسط 6.5، من 1 إلى 32
@@ -126,28 +128,14 @@ python -m data.dummy_generator --employees 10000 --seed 7 --no-save
 
 ```
 organizational_xray/
-├── app.py                     # نقطة الدخول: streamlit run app.py
-├── data/
-│   ├── dummy_generator.py     # بناء الهيكل + Faker + المشكلات المتعمدة + Manifest
-│   ├── loader.py              # قراءة CSV/Excel وتوحيد الأعمدة والقيم
-│   ├── validator.py           # Validation عند الاستيراد
-│   └── sample/                # org_dummy_data.csv / .xlsx
-├── analytics/                 # Business logic فقط (بدون Streamlit)
-│   ├── hierarchy.py           # الرسم البياني، CEO، Depth، الحلقات، حالة العلاقة الإدارية
-│   ├── span_of_control.py
-│   ├── departments.py         # مقاييس الوحدات والطبقات والمسميات
-│   ├── anomalies.py           # X-Ray Findings Engine
-│   ├── data_quality.py
-│   ├── simulations.py         # What-If (سيناريو = قائمة إجراءات JSON)
-│   ├── insights.py            # إجابات الأسئلة الأساسية مع الدليل
-│   ├── engine.py              # OrgXRayEngine + TOOL_SPECS للـAI مستقبلًا
-│   └── report.py              # تقرير البيانات المحسوب
-├── visualization/             # Plotly figures (theme، hierarchy، departments، network، dashboards)
-├── ui/                        # صفحات Streamlit + state/caching + مكونات مشتركة
-├── utils/                     # config (الحدود والمخطط) + helpers
-├── exports/exporter.py        # Excel متعدد الأوراق و CSV
-└── tests/                     # pytest
+├── app.py            # البرنامج كاملًا في ملف واحد
+├── data/sample/      # org_dummy_data.csv / .xlsx (البيانات الوهمية الجاهزة)
+├── tests/            # pytest (تستورد الدوال من app.py)
+├── DATASET.md        # تقرير البيانات المحسوب
+└── requirements.txt
 ```
+
+`app.py` مقسّم إلى أقسام واضحة بالترتيب: الإعدادات والحدود ← تحميل البيانات والتحقق ← مولّد البيانات الوهمية ← محرك الهيكل (Hierarchy) ← Span of Control والإدارات ← X-Ray Findings ← جودة البيانات ← What-If Simulator ← `OrgXRayEngine` للـAI ← الرسومات ← التصدير ← صفحات Streamlit ← نقطة التشغيل. منطق التحليل لا يستخدم Streamlit؛ صفحات الواجهة فقط هي التي تستخدمه.
 
 **الأداء:** الهيكل يُبنى مرة واحدة لكل مجموعة بيانات (`st.cache_resource`)، والـFindings وجودة البيانات تُخزن حسب (البيانات، الإعدادات)؛ تغيير الفلاتر أو الصفحة لا يعيد الحساب. كل الخوارزميات خطية (BFS، Condensation للحلقات، تخطيط شجري بدون Recursion). مثال: 10,000 موظف ← بناء الهيكل ~0.7 ثانية، الـFindings ~0.4 ثانية.
 
@@ -155,7 +143,7 @@ organizational_xray/
 
 ## تجهيز المشروع لمساعد AI
 
-`analytics/engine.py` يوفر `OrgXRayEngine` وقائمة `TOOL_SPECS` (بصيغة JSON Schema) و `call_tool()`. المساعد المستقبلي يجب أن **يستدعي هذه الأدوات** ثم يصيغ النتيجة، ولا يحسب الأرقام بنفسه:
+قسم «Analytics facade» في `app.py` يوفر `OrgXRayEngine` وقائمة `TOOL_SPECS` (بصيغة JSON Schema) و `call_tool()`. المساعد المستقبلي يجب أن **يستدعي هذه الأدوات** ثم يصيغ النتيجة، ولا يحسب الأرقام بنفسه:
 
 | سؤال المستخدم | الأداة |
 |---|---|
@@ -166,7 +154,7 @@ organizational_xray/
 | اعرض أطول Reporting Chains | `longest_reporting_chains(top=10)` |
 
 ```python
-from analytics.engine import OrgXRayEngine, call_tool
+from app import OrgXRayEngine, call_tool
 import pandas as pd
 
 engine = OrgXRayEngine(pd.read_csv("data/sample/org_dummy_data.csv", dtype=str))

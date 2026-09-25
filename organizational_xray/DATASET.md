@@ -1,6 +1,6 @@
 # Dataset report (generated)
 
-> مولَّد تلقائيًا بالأمر `python -m data.dummy_generator` — كل الأرقام محسوبة من البيانات نفسها. أعد تشغيل الأمر بعد تغيير الـseed أو الحجم.
+> مولَّد تلقائيًا بالأمر `python app.py --generate` — كل الأرقام محسوبة من البيانات نفسها. أعد تشغيل الأمر بعد تغيير الـseed أو الحجم.
 
 ## Dataset facts (computed)
 - Records: 1,543

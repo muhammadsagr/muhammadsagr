@@ -2,13 +2,22 @@ import io
 
 import pandas as pd
 
-from analytics.data_quality import affected_records, dimension_scores, run_checks
-from analytics.engine import TOOL_SPECS, OrgXRayEngine, call_tool
-from data.loader import normalize, read_uploaded
-from data.validator import validate
-from exports.exporter import build_export_tables, to_csv_bytes, to_excel_bytes
+from app import (
+    affected_records,
+    build_export_tables,
+    call_tool,
+    dimension_scores,
+    normalize,
+    OrgXRayEngine,
+    read_uploaded,
+    run_checks,
+    Settings,
+    to_csv_bytes,
+    to_excel_bytes,
+    TOOL_SPECS,
+    validate,
+)
 from tests.conftest import make_model, make_raw
-from utils.config import Settings
 
 
 def test_column_aliases_and_normalisation():
@@ -45,7 +54,7 @@ def test_read_csv_and_excel_roundtrip(small_rows):
 
 
 def make_model_from(raw):
-    from analytics.hierarchy import build_org_model
+    from app import build_org_model
     return build_org_model(normalize(raw))
 
 
@@ -71,7 +80,7 @@ def test_dummy_data_quality(dummy_model):
 
 
 def test_export_workbook(small_rows):
-    from analytics.anomalies import detect_findings
+    from app import detect_findings
     m = make_model(small_rows)
     sheets = build_export_tables(m, detect_findings(m), Settings())
     assert list(sheets) == ["Employees", "Managers", "Departments", "Findings", "Span of Control",

@@ -1,6 +1,12 @@
-from analytics.anomalies import detect_findings, explain_finding, filter_findings
+from app import (
+    detect_findings,
+    explain_finding,
+    filter_findings,
+    FINDING_TYPES,
+    Settings,
+    SEVERITIES,
+)
 from tests.conftest import make_model
-from utils.config import FINDING_TYPES, SEVERITIES, Settings
 
 FORBIDDEN = ["غير ضروري", "unnecessary", "Bad", "Good"]
 

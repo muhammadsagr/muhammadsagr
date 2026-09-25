@@ -1,5 +1,4 @@
-from data.dummy_generator import generate_org
-from utils.config import CANONICAL_COLUMNS
+from app import CANONICAL_COLUMNS, generate_org
 
 
 def test_generator_shape_and_fields(dummy, dummy_model):

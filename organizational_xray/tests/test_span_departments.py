@@ -1,14 +1,17 @@
 import numpy as np
 
-from analytics.departments import (
+from app import (
     job_title_analysis,
     layer_metrics,
+    manager_table,
+    Settings,
+    span_by,
+    span_category,
+    span_stats,
     title_similarity,
     unit_metrics,
 )
-from analytics.span_of_control import manager_table, span_by, span_category, span_stats
 from tests.conftest import make_model
-from utils.config import Settings
 
 
 def test_span_category_boundaries():

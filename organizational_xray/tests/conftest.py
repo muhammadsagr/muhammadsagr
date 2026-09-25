@@ -7,9 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from analytics.hierarchy import build_org_model  # noqa: E402
-from data.dummy_generator import generate_org  # noqa: E402
-from data.loader import normalize  # noqa: E402
+from app import build_org_model, generate_org, normalize  # noqa: E402
 
 
 def make_raw(rows):
