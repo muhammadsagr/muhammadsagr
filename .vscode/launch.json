@@ -2,6 +2,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "تشغيل Organizational X-Ray",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/organizational_xray/app.py",
+      "cwd": "${workspaceFolder}/organizational_xray",
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "تشغيل لوحة الموارد البشرية (Streamlit)",
       "type": "debugpy",
       "request": "launch",

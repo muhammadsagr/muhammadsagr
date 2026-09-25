@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Organizational X-Ray",
+      "type": "shell",
+      "command": "python app.py",
+      "windows": { "command": "py -3 app.py" },
+      "options": { "cwd": "${workspaceFolder}/organizational_xray" },
+      "isBackground": true,
+      "problemMatcher": [],
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    }
+  ]
+}
