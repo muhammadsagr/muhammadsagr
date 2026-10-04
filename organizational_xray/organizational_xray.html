@@ -1329,7 +1329,17 @@ function view() {
 }
 
 /* ---------------------------------------------------------------- downloads */
-function download(name, content, mime) {
+// Inside the claude.ai viewer, files go through the "downloads" capability; a local file uses a normal link.
+let dlNs = null;
+const dlReady = window.claude && typeof window.claude.use === "function"
+  ? window.claude.use("downloads").then((n) => (dlNs = n)).catch(() => null) : Promise.resolve(null);
+async function download(name, content, mime) {
+  if (window.claude) await dlReady;
+  if (dlNs) {
+    try { await dlNs.save({ filename: name, data: content }); toast("تم حفظ الملف."); }
+    catch (e) { if (e && e.code !== "declined") toast("تعذر حفظ الملف: " + (e.message || e.code)); }
+    return;
+  }
   try { const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); } catch (e) { toast("تعذر التحميل في هذه البيئة. استخدم «نسخ CSV»."); }
@@ -2002,7 +2012,7 @@ function pageExport() {
   h += v.filtered ? `<p><label><input type="checkbox" id="expf" ${S.sel.expF !== false ? "checked" : ""}> تطبيق الفلاتر العامة على التصدير</label></p>` : "";
   h += `<div class="kpis">${Object.entries(sheets).map(([k, rows]) => kpi(k, nf(rows.length), "صف")).join("")}</div>
     <div style="margin:14px 0"><button class="btn primary" id="xls">⬇ Excel (organizational_xray.xlsx)</button></div>
-    <p class="note">التحميل يعمل عند فتح الملف من جهازك. إذا لم يبدأ التحميل في بيئتك، استخدم زر «نسخ CSV» تحت أي جدول ثم الصقه في Excel.</p>`;
+    <p class="note">إذا لم يبدأ التحميل في بيئتك، استخدم زر «نسخ CSV» تحت أي جدول ثم الصقه في Excel.</p>`;
   const pick = S.sel.expSheet || "Findings";
   h += `<h2>CSV</h2><div class="toolbar"><label>الجدول<select id="exs2">${Object.keys(sheets).map((k) => `<option ${k === pick ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>`;
   const rows = sheets[pick], cols = Object.keys(rows[0] || {}).map((k) => ({ k, label: k, t: typeof rows[0][k] === "number" ? "n" : k === "description" || k === "evidence" ? "wrap" : undefined }));
@@ -2014,7 +2024,8 @@ function pageExport() {
       if (typeof XLSX === "undefined") return toast("تصدير Excel يحتاج اتصالًا بالإنترنت (مكتبة SheetJS). استخدم CSV.");
       const wb = XLSX.utils.book_new();
       for (const [k, r] of Object.entries(sheets)) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(r.length ? r : [{}]), k.slice(0, 31));
-      try { XLSX.writeFile(wb, "organizational_xray.xlsx"); } catch (e) { toast("تعذر التحميل في هذه البيئة."); }
+      download("organizational_xray.xlsx", new Uint8Array(XLSX.write(wb, { type: "array", bookType: "xlsx" })),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     };
   });
   return h;
