@@ -1,0 +1,2063 @@
+<!doctype html>
+<html lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head>
+<body>
+<title>Organizational X-Ray</title>
+<meta name="description" content="Organizational X-Ray: تحليل الهيكل التنظيمي (Layers, Span of Control, Findings, What-If Simulator) في ملف واحد.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a fixed instrument rail (navigation + global filters) beside a scrolling reading
+   pane. The rail sits on the right because the page is right-to-left. */
+:root {
+  --bg: #f3f6f7;          /* light-box ground */
+  --surface: #ffffff;
+  --sunken: #eaeff1;
+  --ink: #13212b;
+  --ink-2: #4c5b66;
+  --muted: #7d8a93;
+  --line: #d9e1e5;
+  --accent: #0b6e8a;      /* radiograph cyan */
+  --accent-soft: #dcedf2;
+  --accent-ink: #ffffff;
+  --bar-2: #e2763f;       /* second series */
+  --bar-3: #5a4bb0;       /* third series */
+  --crit: #c9373a; --sig: #e0703f; --att: #c98a00; --info: #7d8a93;
+  --crit-bg: #fbe4e3; --sig-bg: #fcebe1; --att-bg: #fbf1d6; --info-bg: #eceff1;
+  --good: #1f8a4c;
+  --font-body: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r: 8px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1317; --surface: #131d23; --sunken: #0f181d; --ink: #e4edf1; --ink-2: #a9b8c1; --muted: #7a8a94;
+    --line: #24323a; --accent: #4fc1da; --accent-soft: #15333d; --accent-ink: #062028; --bar-2: #ef8a55; --bar-3: #9488ee;
+    --crit: #ef6a6a; --sig: #f2915f; --att: #e8b53a; --info: #8d9aa3;
+    --crit-bg: #3a1a1b; --sig-bg: #3a2418; --att-bg: #352a10; --info-bg: #1d282e; --good: #4cc27c; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1317; --surface: #131d23; --sunken: #0f181d; --ink: #e4edf1; --ink-2: #a9b8c1; --muted: #7a8a94;
+  --line: #24323a; --accent: #4fc1da; --accent-soft: #15333d; --accent-ink: #062028; --bar-2: #ef8a55; --bar-3: #9488ee;
+  --crit: #ef6a6a; --sig: #f2915f; --att: #e8b53a; --info: #8d9aa3;
+  --crit-bg: #3a1a1b; --sig-bg: #3a2418; --att-bg: #352a10; --info-bg: #1d282e; --good: #4cc27c; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.6; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mono, code { font-family: var(--font-mono); font-size: .92em; unicode-bidi: isolate; direction: ltr; }
+.num { font-variant-numeric: tabular-nums; }
+
+.app { display: grid; grid-template-columns: 264px minmax(0, 1fr); min-height: 100%; }
+.rail { position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto; background: var(--surface);
+  border-inline-end: 1px solid var(--line); padding: 20px 16px 24px; display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand svg { flex: none; }
+.brand b { display: block; font-size: 15px; letter-spacing: .01em; white-space: nowrap; }
+.brand small { color: var(--muted); font-size: 12px; }
+.nav { display: grid; gap: 2px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; color: var(--ink-2); text-decoration: none; }
+.nav a:hover { background: var(--sunken); color: var(--ink); }
+.nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.nav a .en { margin-inline-start: auto; font-size: 11px; color: var(--muted); direction: ltr; white-space: nowrap; }
+.rail h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.filters { display: grid; gap: 8px; }
+.filters label { display: grid; gap: 2px; font-size: 12px; color: var(--ink-2); }
+select, input[type="text"], input[type="number"], input[type="search"] { background: var(--surface); border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px; min-width: 0; width: 100%; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); color: var(--accent-ink); }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+main { padding-block: 28px 64px; padding-inline: 32px; min-width: 0; }
+.page-head { display: flex; flex-wrap: wrap; align-items: end; gap: 8px 24px; margin-bottom: 20px; }
+.page-head h1 { margin: 0; font-size: 26px; line-height: 1.2; text-wrap: balance; }
+.page-head h1 .en { color: var(--muted); font-weight: 400; font-size: 15px; margin-inline-start: 8px; direction: ltr; unicode-bidi: isolate; }
+.page-head p { margin: 4px 0 0; color: var(--ink-2); max-width: 70ch; }
+.filter-note { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 6px 12px; font-size: 13px; margin-bottom: 16px; }
+h2 { font-size: 17px; margin: 30px 0 10px; text-wrap: balance; }
+h3 { font-size: 14px; margin: 0 0 8px; }
+.sub { color: var(--muted); font-size: 12.5px; margin: -4px 0 10px; }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; min-width: 0; }
+.kpi .k { color: var(--ink-2); font-size: 12.5px; }
+.kpi .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.3; direction: ltr; text-align: right; }
+.kpi .h { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.kpi.alert .v { color: var(--crit); }
+
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; min-width: 0; }
+.panel h3 + .sub { margin-top: -6px; }
+
+.qa { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.qa a { display: block; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; }
+.qa a:hover { border-color: var(--accent); }
+.qa .q { color: var(--ink-2); font-size: 12.5px; }
+.qa .a { font-weight: 600; font-size: 15px; margin: 2px 0; }
+.qa .e { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-bottom: 10px; }
+.toolbar label { display: grid; gap: 2px; font-size: 12px; color: var(--ink-2); min-width: 150px; flex: 1 1 150px; max-width: 280px; }
+.toolbar .grow { flex: 2 1 220px; max-width: none; }
+
+.tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); max-height: 460px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 6px 10px; text-align: start; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: top; }
+td.wrap { white-space: normal; min-width: 260px; max-width: 520px; }
+th { position: sticky; top: 0; background: var(--sunken); font-weight: 600; font-size: 12px; color: var(--ink-2); cursor: pointer; user-select: none; z-index: 1; }
+th[aria-sort="ascending"]::after { content: " ▲"; font-size: 9px; }
+th[aria-sort="descending"]::after { content: " ▼"; font-size: 9px; }
+td.n { font-variant-numeric: tabular-nums; text-align: end; direction: ltr; }
+tbody tr:hover { background: var(--sunken); }
+tbody tr.clickable { cursor: pointer; }
+tbody tr.sel { background: var(--accent-soft); }
+.tablefoot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin: 6px 0 4px; color: var(--muted); font-size: 12px; }
+
+.sev { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 0 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sev::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sev.Critical { color: var(--crit); background: var(--crit-bg); }
+.sev.Significant { color: var(--sig); background: var(--sig-bg); }
+.sev.Attention { color: var(--att); background: var(--att-bg); }
+.sev.Informational { color: var(--info); background: var(--info-bg); }
+.pill { display: inline-block; border-radius: 4px; padding: 0 6px; font-size: 12px; background: var(--sunken); color: var(--ink-2); }
+.pill.ok { color: var(--good); }
+.pill.bad { color: var(--crit); }
+
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; max-width: 100%; height: auto; direction: ltr; }
+.chart text { fill: var(--ink-2); font-family: var(--font-body); font-size: 11px; }
+.chart .axis { stroke: var(--line); }
+.chart .grid { stroke: var(--line); stroke-dasharray: 2 3; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-inline-end: 5px; vertical-align: -1px; }
+.tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--bg); padding: 6px 9px; border-radius: 6px;
+  font-size: 12px; line-height: 1.45; max-width: 320px; direction: rtl; white-space: pre-line; }
+
+.detail { border: 1px solid var(--accent); border-radius: var(--r); background: var(--surface); padding: 16px 18px; margin-top: 14px; }
+.detail .facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; margin: 12px 0; }
+.detail .facts div { background: var(--sunken); border-radius: 6px; padding: 8px 10px; min-width: 0; }
+.detail .facts span { display: block; font-size: 11.5px; color: var(--muted); }
+.detail .facts b { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.evidence { background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; }
+.rule { font-family: var(--font-mono); font-size: 12.5px; background: var(--sunken); padding: 8px 10px; border-radius: 6px; direction: ltr; text-align: left; overflow-x: auto; }
+
+.chain { display: grid; gap: 0; }
+.chain .node { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
+.chain .node.sel { border-color: var(--accent); border-width: 2px; }
+.chain .node small { color: var(--muted); display: block; }
+.chain .up { color: var(--muted); padding-inline-start: 18px; line-height: 1.2; }
+.warn { color: var(--crit); }
+.okc { color: var(--good); }
+
+.lines { font-size: 13px; direction: ltr; text-align: left; display: grid; gap: 2px; }
+.scen { display: grid; gap: 6px; margin: 8px 0; }
+.scen div { display: flex; gap: 8px; align-items: center; background: var(--sunken); border-radius: 6px; padding: 6px 10px; }
+.scen span { flex: 1; min-width: 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.tabs button { border: 0; background: none; padding: 8px 12px; cursor: pointer; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.formgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px 14px; align-items: end; }
+.formgrid label { display: grid; gap: 3px; font-size: 12.5px; color: var(--ink-2); }
+.note { color: var(--muted); font-size: 12.5px; }
+.err { color: var(--crit); background: var(--crit-bg); border-radius: 6px; padding: 8px 12px; }
+.ok { color: var(--good); }
+.netwrap { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); overflow: hidden; touch-action: none; }
+.netwrap svg { display: block; width: 100%; height: 620px; cursor: grab; direction: ltr; }
+.netwrap svg text { font-size: 10px; fill: var(--ink-2); font-family: var(--font-body); }
+.drop { border: 1.5px dashed var(--line); border-radius: var(--r); padding: 22px; text-align: center; background: var(--surface); }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; border-inline-end: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; }
+  .nav { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; padding-bottom: 4px; }
+  .nav a .en { display: none; }
+  .filters { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  main { padding-inline: 16px; padding-block: 20px 48px; }
+  .grid2 { grid-template-columns: minmax(0, 1fr); }
+  .netwrap svg { height: 460px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+</style>
+<div class="app" dir="rtl" lang="ar">
+  <aside class="rail">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+        <rect x="1" y="1" width="32" height="32" rx="7" fill="var(--accent)"/>
+        <g stroke="var(--accent-ink)" stroke-width="1.6" fill="none" stroke-linecap="round">
+          <path d="M17 9v5M10 19v-2.5h14V19M17 14v2.5"/>
+        </g>
+        <g fill="var(--accent-ink)"><circle cx="17" cy="8" r="2.6"/><circle cx="10" cy="21.5" r="2.4"/><circle cx="17" cy="21.5" r="2.4"/><circle cx="24" cy="21.5" r="2.4"/></g>
+      </svg>
+      <div><b>Organizational X-Ray</b><small>أشعة سينية على الهيكل التنظيمي</small></div>
+    </div>
+    <nav class="nav" aria-label="الصفحات"></nav>
+    <div><h4>Global Filters · الفلاتر العامة</h4><div class="filters"></div></div>
+    <p class="note" style="margin:auto 0 0">مصدر البيانات: <span id="src"></span></p>
+  </aside>
+  <main id="main"></main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* ===================================================================================
+   Organizational X-Ray — analytics engine (pure JS, no DOM).
+   Data -> Rules -> Calculations -> Evidence -> Findings
+   =================================================================================== */
+"use strict";
+
+/* ---------------------------------------------------------------- configuration */
+const COLUMNS = ["employee_id", "employee_name", "gender", "age", "hire_date", "employment_status",
+  "job_title", "job_level", "grade", "department", "division", "business_unit", "location",
+  "manager_id", "manager_name", "salary", "position_id", "position_status", "employment_type",
+  "work_arrangement", "performance_rating", "years_of_service"];
+const LABELS = {
+  employee_id: "Employee ID", employee_name: "Name", gender: "Gender", age: "Age", hire_date: "Hire Date",
+  employment_status: "Employment Status", job_title: "Job Title", job_level: "Job Level", grade: "Grade",
+  department: "Department", division: "Division", business_unit: "Business Unit", location: "Location",
+  manager_id: "Manager ID", manager_name: "Manager Name", salary: "Salary", position_id: "Position ID",
+  position_status: "Position Status", employment_type: "Employment Type", work_arrangement: "Work Arrangement",
+  performance_rating: "Performance Rating", years_of_service: "Years of Service",
+  node_id: "Node ID", depth: "Depth", status: "Reporting Status", direct: "Direct Reports",
+  vacDirect: "Vacant Direct Positions", total: "Total Reports", row_number: "Row",
+};
+const LEVEL_NAMES = { 0: "CEO", 1: "C-Suite", 2: "Directors", 3: "Senior Managers", 4: "Managers",
+  5: "Supervisors", 6: "Individual Contributors" };
+const SEVERITIES = ["Critical", "Significant", "Attention", "Informational"];
+const FINDING_TYPES = ["CIRCULAR_REPORTING", "ORPHAN_EMPLOYEE", "INVALID_MANAGER", "TERMINATED_MANAGER",
+  "HIGH_SPAN_OF_CONTROL", "LOW_SPAN_OF_CONTROL", "DEEP_HIERARCHY", "HIGH_MANAGEMENT_RATIO",
+  "SMALL_DEPARTMENT", "DUPLICATE_POSITION", "VACANT_POSITION"];
+const TYPE_AR = {
+  LOW_SPAN_OF_CONTROL: "Span of Control منخفض", HIGH_SPAN_OF_CONTROL: "Span of Control مرتفع",
+  DEEP_HIERARCHY: "تسلسل إداري عميق", ORPHAN_EMPLOYEE: "موظف بدون مدير", INVALID_MANAGER: "مدير غير موجود",
+  TERMINATED_MANAGER: "مدير منتهي الخدمة", CIRCULAR_REPORTING: "علاقة إدارية دائرية",
+  SMALL_DEPARTMENT: "وحدة تنظيمية صغيرة", HIGH_MANAGEMENT_RATIO: "نسبة مديرين مرتفعة",
+  VACANT_POSITION: "وظيفة شاغرة", DUPLICATE_POSITION: "وظائف مكررة / متشابهة",
+};
+const RS = { CEO: "Top of Hierarchy", VALID: "Valid", MISSING: "Missing Manager", INVALID: "Invalid Manager",
+  TERMINATED: "Terminated Manager", CIRCULAR: "Circular Reporting", DISCONNECTED: "Disconnected (upstream break)",
+  INACTIVE: "Not Active", VACANT: "Vacant Position", DUP: "Duplicate ID (excluded)" };
+const INVALID_RS = new Set([RS.MISSING, RS.INVALID, RS.TERMINATED, RS.CIRCULAR]);
+const DEFAULT_SETTINGS = { low: 3, high: 12, deep: 6, small: 3, ratio: 0.20, similarity: 0.80,
+  excludeExec: true, maxNodes: 600 };
+const UNASSIGNED = "(Unassigned)";
+
+/* ---------------------------------------------------------------- small helpers */
+const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+const sum = (a) => a.reduce((s, x) => s + x, 0);
+const mean = (a) => (a.length ? sum(a) / a.length : NaN);
+function quantile(arr, q) {
+  const a = arr.filter(isNum).sort((x, y) => x - y);
+  if (!a.length) return NaN;
+  const pos = (a.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return a[lo] + (a[hi] - a[lo]) * (pos - lo);
+}
+const median = (a) => quantile(a, 0.5);
+const pct = (x, d = 1) => (isNum(x) ? (x * 100).toFixed(d) + "%" : "—");
+const fmt = (x, d = 1) => (!isNum(x) ? "—" : Number.isInteger(x) ? x.toLocaleString("en-US")
+  : x.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }));
+const g = (v) => (isNum(v) ? String(+v.toFixed(2)) : "—");
+function groupBy(arr, keyFn) {
+  const m = new Map();
+  for (const x of arr) { const k = keyFn(x); if (!m.has(k)) m.set(k, []); m.get(k).push(x); }
+  return m;
+}
+const label = (v) => (v === "" || v == null ? UNASSIGNED : v);
+
+/* ---------------------------------------------------------------- seeded random */
+function makeRng(seed) {
+  let a = seed >>> 0;
+  const rnd = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const r = {
+    random: rnd,
+    int: (lo, hi) => lo + Math.floor(rnd() * (hi - lo + 1)),
+    choice: (arr) => arr[Math.floor(rnd() * arr.length)],
+    pick: (arr, p) => { let x = rnd() * sum(p); for (let i = 0; i < arr.length; i++) { x -= p[i]; if (x <= 0) return arr[i]; } return arr[arr.length - 1]; },
+    normal: (m = 0, s = 1) => { const u = 1 - rnd(), v = rnd(); return m + s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); },
+    gamma: (k, theta) => { // Marsaglia–Tsang (k >= 1)
+      const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+      for (;;) { let x, v; do { x = r.normal(); v = 1 + c * x; } while (v <= 0);
+        v = v * v * v; const u = rnd();
+        if (u < 1 - 0.0331 * x ** 4 || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v * theta; }
+    },
+    shuffle: (arr) => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; },
+  };
+  return r;
+}
+
+/* ===================================================================================
+   Dummy organisation: structure first, then people, then deliberate issues
+   =================================================================================== */
+const FIRST_M = ["James", "Omar", "Daniel", "Khalid", "Michael", "Yousef", "David", "Tariq", "Robert", "Faisal",
+  "William", "Hassan", "Richard", "Ahmed", "Thomas", "Saeed", "Mark", "Nasser", "Steven", "Ali", "Paul", "Majed",
+  "Andrew", "Kareem", "Brian", "Sami", "Kevin", "Fahad", "Jason", "Adel", "Ryan", "Bilal", "Eric", "Hamza",
+  "Jacob", "Rami", "Nathan", "Ziad", "Samuel", "Waleed"];
+const FIRST_F = ["Sarah", "Fatimah", "Emily", "Noura", "Jessica", "Reem", "Laura", "Huda", "Hannah", "Mariam",
+  "Rachel", "Lina", "Olivia", "Dana", "Sophia", "Aisha", "Grace", "Rana", "Chloe", "Salma", "Emma", "Layla",
+  "Megan", "Hind", "Julia", "Amal", "Claire", "Mona", "Natalie", "Yara"];
+const LAST = ["Smith", "Al-Harbi", "Johnson", "Al-Qahtani", "Brown", "Al-Otaibi", "Taylor", "Haddad", "Miller",
+  "Al-Shehri", "Wilson", "Nasser", "Moore", "Khoury", "Anderson", "Al-Ghamdi", "Thomas", "Saleh", "Jackson",
+  "Al-Zahrani", "White", "Mansour", "Harris", "Al-Dosari", "Martin", "Farouk", "Clark", "Al-Mutairi", "Lewis",
+  "Hamdan", "Walker", "Al-Shammari", "Young", "Barakat", "King", "Al-Malki", "Wright", "Aziz", "Scott", "Rahman",
+  "Green", "Kassem", "Baker", "Al-Anazi", "Adams", "Youssef", "Nelson", "Hariri", "Hill", "Sabbagh"];
+
+const U = (title, level, children = [], ics = 0, ic_titles = null) => ({ title, level, children, ics, ic_titles });
+const HQ = { Riyadh: 1 };
+const DEPTS = [
+  ["HR Operations", "Human Resources", "Corporate Services", U("Director, HR Operations", 2, [[3, U("HR Operations Manager", 4, [], [15, 18])]]),
+    ["HR Officer", "HR Specialist", "HR Analyst", "HR Analyst", "Senior HR Analyst", "HR Coordinator"], 0.03, 1.0, { Riyadh: .7, Jeddah: .2, Dammam: .1 }],
+  ["HRIS", "Human Resources", "Corporate Services", U("Director, HRIS", 2, [[2, U("HRIS Senior Manager", 3, [[{ list: [2, 1] }, U("HRIS Manager", 4, [[1, U("HRIS Supervisor", 5, [], { list: [3, 2, 1] })]])]])]]),
+    ["HRIS Analyst", "HRIS Analyst", "HR Data Analyst", "HRIS Specialist", "Hris Analyst"], 0, 1.1, HQ, .2, .3],
+  ["Talent Acquisition", "Human Resources", "Corporate Services", U("Director, Talent Acquisition", 2, [[2, U("Talent Acquisition Manager", 4, [], [14, 17])]]),
+    ["Recruiter", "Senior Recruiter", "Talent Acquisition Specialist", "Talent Acquisition Specialist", "Recruitment Specialist"], .08, .95, { Riyadh: .6, Jeddah: .25, Dubai: .15 }],
+  ["Learning & Development", "Human Resources", "Corporate Services", U("Director, Learning & Development", 2, [[2, U("L&D Manager", 4, [], [8, 10])]]),
+    ["Learning & Development Specialist", "Training Specialist", "L&D Specialist", "Instructional Designer"], .05, .95, HQ],
+  ["Total Rewards", "Human Resources", "Corporate Services", U("Head of Total Rewards", 2, [], 2), ["Compensation Analyst", "Benefits Analyst"], 0, 1.05, HQ],
+  ["Accounting", "Finance", "Corporate Services", U("Director, Accounting", 2, [[2, U("Senior Accounting Manager", 3, [[2, U("Accounting Manager", 4, [[3, U("Accounting Supervisor", 5, [], [5, 8])]])]])]]),
+    ["Accountant", "Senior Accountant", "Staff Accountant", "Accounts Payable Accountant", "Accounts Receivable Accountant"], .04, 1.0, { Riyadh: .85, Jeddah: .15 }],
+  ["Financial Planning", "Finance", "Corporate Services", U("Director, Financial Planning", 2, [[2, U("FP&A Manager", 4, [], [11, 13])]]),
+    ["Financial Analyst", "Senior Financial Analyst", "FP&A Analyst"], .05, 1.1, HQ],
+  ["Treasury", "Finance", "Corporate Services", U("Treasury Director", 2, [], 1), ["Treasury Analyst"], 0, 1.15, HQ],
+  ["Procurement", "Finance", "Corporate Services", U("Director, Procurement", 2, [[3, U("Procurement Manager", 4, [], { list: [12, 1, 13] })]]),
+    ["Procurement Specialist", "Buyer", "Senior Buyer", "Category Specialist"], .06, .95, { Riyadh: .6, Dammam: .4 }],
+  ["Infrastructure", "Information Technology", "Technology", U("Director, Infrastructure", 2, [[2, U("Senior Infrastructure Manager", 3, [[3, U("Infrastructure Manager", 4, [], [9, 12])]])]]),
+    ["Systems Engineer", "Senior Systems Engineer", "Network Engineer", "Cloud Engineer", "IT Support Specialist"], .07, 1.15, { Riyadh: .8, Dammam: .2 }, .15, .4],
+  ["Cybersecurity", "Information Technology", "Technology", U("Director, Cybersecurity", 2, [[2, U("Senior Security Manager", 3, [[{ list: [2, 1] }, U("Security Manager", 4, [], [7, 9])]])]]),
+    ["Security Analyst", "Senior Security Analyst", "SOC Analyst", "Security Engineer"], .15, 1.25, HQ, .1, .5],
+  ["Applications", "Information Technology", "Technology", U("Director, Applications", 2, [[3, U("Senior Applications Manager", 3, [[3, U("Applications Manager", 4, [[2, U("Team Lead", 5, [], [5, 8])]])]])]]),
+    ["Software Engineer", "Senior Software Engineer", "Software Developer", "QA Engineer", "Business Analyst"], .06, 1.2, { Riyadh: .7, Cairo: .3 }, .3, .25],
+  ["Data & Analytics", "Information Technology", "Technology", U("Director, Data & Analytics", 2, [[3, U("Analytics Manager", 4, [], { list: [10, 11, 3] })]]),
+    ["Data Analyst", "Senior Data Analyst", "BI Analyst", "Data Engineer", "Data Scientist"], .08, 1.2, HQ, .25, .3],
+  ["Operations", "Operations", "Operations", U("VP Operations", 2, [
+    [1, U("Senior Director, Field Operations", 2, [[2, U("Director, Regional Operations", 2, [[2, U("Senior Operations Manager", 3, [[3, U("Operations Manager", 4, [[3, U("Operations Supervisor", 5, [], [8, 11])]])]])]])]])],
+    [1, U("Director, Plant Operations", 2, [[3, U("Plant Manager", 4, [[2, U("Shift Supervisor", 5, [], { list: [14, 11, 20, 12, 22, 10] })]])]])]]),
+    ["Operations Technician", "Senior Operations Technician", "Machine Operator", "Maintenance Technician", "Operations Associate"], .02, .8, { Dammam: .55, Jubail: .45 }, 0, .97],
+  ["Quality", "Operations", "Operations", U("Director, Quality", 2, [[1, U("Quality Manager", 4, [], 7)]], 17),
+    ["Quality Inspector", "Quality Engineer", "Quality Analyst", "QA/QC Technician"], .04, .9, { Dammam: .6, Jubail: .4 }, 0, .9],
+  ["Supply Chain", "Operations", "Operations", U("Director, Supply Chain", 2, [[2, U("Senior Supply Chain Manager", 3, [[2, U("Supply Chain Manager", 4, [[3, U("Warehouse Supervisor", 5, [], { list: [9, 11, 20, 10, 12, 8, 15, 10, 11, 9, 12, 10] })]])]])]]),
+    ["Warehouse Associate", "Logistics Coordinator", "Inventory Specialist", "Forklift Operator", "Supply Chain Analyst"], .03, .8, { Dammam: .5, Jeddah: .3, Riyadh: .2 }, 0, .9],
+  ["Customer Operations", "Operations", "Operations", U("Director, Customer Operations", 2, [[3, U("Customer Operations Manager", 4, [[3, U("Customer Service Supervisor", 5, [], { list: [12, 10, 34, 11, 9, 13, 12, 11, 10] })]])]]),
+    ["Customer Service Agent", "Senior Customer Service Agent", "Customer Support Specialist", "Call Center Agent"], .05, .7, { Riyadh: .5, Cairo: .5 }, .15, .6],
+  ["Sales", "Commercial", "Commercial", U("Director, Sales", 2, [[3, U("Regional Sales Director", 3, [[3, U("Sales Manager", 4, [], [8, 11])]])]]),
+    ["Sales Representative", "Senior Sales Representative", "Account Executive", "Key Account Manager", "Sales Executive"], .05, 1.0, { Riyadh: .4, Jeddah: .35, Dubai: .25 }, .05, .5],
+  ["Marketing", "Commercial", "Commercial", U("Director, Marketing", 2, [[3, U("Marketing Manager", 4, [], [9, 11])]]),
+    ["Marketing Specialist", "Digital Marketing Specialist", "Content Specialist", "Marketing Analyst", "Brand Specialist"], .06, 1.0, { Riyadh: .7, Dubai: .3 }, .2, .3],
+  ["Business Development", "Commercial", "Commercial", U("Director, Business Development", 2, [], 11),
+    ["Business Development Executive", "Partnership Specialist", "Business Development Analyst"], 0, 1.1, { Riyadh: .6, Dubai: .4 }],
+  ["Internal Audit", "Governance", "Corporate Services", U("Head of Internal Audit", 2, [], 2), ["Internal Auditor"], 0, 1.1, HQ],
+  ["Strategy Office", "Governance", "Corporate Services", U("Strategy Director", 2), [], 0, 1.2, HQ],
+].map(([name, division, bu, head, ic_titles, vacancy, salaryF, locations, remote = .1, onsite = .6]) =>
+  ({ name, division, bu, head, ic_titles, vacancy, salaryF, locations, remote, onsite }));
+const C_SUITE = { "Human Resources": "Chief Human Resources Officer", "Finance": "Chief Financial Officer",
+  "Information Technology": "Chief Information Officer", "Operations": "Chief Operating Officer",
+  "Commercial": "Chief Commercial Officer" };
+const BASE_SALARY = { 0: 1800000, 1: 950000, 2: 480000, 3: 330000, 4: 245000, 5: 170000, 6: 110000 };
+const GRADE_RANGE = { 0: [20, 20], 1: [18, 19], 2: [16, 17], 3: [14, 15], 4: [12, 13], 5: [10, 11], 6: [5, 9] };
+const AGE_BY_LEVEL = { 0: 56, 1: 51, 2: 46, 3: 42, 4: 39, 5: 36, 6: 31 };
+
+function generateOrg(nEmployees = 1500, seed = 42, asOf = new Date()) {
+  const R = makeRng(seed);
+  const scale = Math.max(0.3, nEmployees / 1500);
+  const rows = [];
+  let posSeq = 10001;
+  const pool = R.shuffle(Array.from({ length: Math.round(3000 * Math.max(scale, 1)) + 2000 }, (_, i) => 10001 + i));
+  const nextId = () => "E" + pool.pop();
+  const listCounters = new Map();
+  const count = (spec, sc = 1) => {
+    let n;
+    if (spec && spec.list) { const i = listCounters.get(spec) || 0; listCounters.set(spec, i + 1); n = spec.list[i % spec.list.length]; }
+    else if (Array.isArray(spec)) n = R.int(spec[0], spec[1]);
+    else n = spec || 0;
+    return n ? Math.max(0, Math.round(n * sc)) : 0;
+  };
+  const loc = (d, parent) => {
+    if (parent && R.random() < 0.8 && d.locations[parent]) return parent;
+    return R.pick(Object.keys(d.locations), Object.values(d.locations));
+  };
+  const work = (d, level) => {
+    if (level <= 3) return R.random() < 0.7 ? "On-site" : "Hybrid";
+    const r = R.random();
+    if (r < d.remote) return "Remote";
+    return r < d.remote + d.onsite ? "On-site" : "Hybrid";
+  };
+  const add = ({ title, level, dept, division, bu, manager_id, location, salaryF = 1, vacant = false, wa = "On-site", type = null }) => {
+    const row = Object.fromEntries(COLUMNS.map((c) => [c, ""]));
+    Object.assign(row, { job_title: title, job_level: level, department: dept, division, business_unit: bu,
+      manager_id, location, position_id: "P" + posSeq++ });
+    const [lo, hi] = GRADE_RANGE[level];
+    let grade = R.int(lo, hi);
+    const senior = level === 6 && title.toLowerCase().startsWith("senior");
+    if (senior) grade = Math.min(hi + 1, grade + 1);
+    row.grade = "G" + grade;
+    if (vacant) {
+      Object.assign(row, { position_status: "Vacant", employee_id: "", employee_name: "", employment_status: "",
+        employment_type: "", work_arrangement: "", salary: null, age: null, hire_date: "", performance_rating: null, years_of_service: null });
+    } else {
+      const male = R.random() < 0.64;
+      const age = Math.round(Math.min(64, Math.max(21, R.normal(AGE_BY_LEVEL[level], 5.5))));
+      const maxYos = Math.max(0, Math.min(age - 21, 28));
+      const yos = Math.min(Math.max(R.gamma(2.2, 2.6 + (6 - level) * 0.9), 0.1), maxYos || 0.1);
+      const hire = new Date(asOf.getTime() - yos * 365.25 * 864e5);
+      let sal = BASE_SALARY[level] * salaryF * Math.exp(R.normal(0, 0.10)) * (1 + 0.012 * yos);
+      if (senior) sal *= 1.2;
+      Object.assign(row, {
+        employee_name: `${R.choice(male ? FIRST_M : FIRST_F)} ${R.choice(LAST)}`, gender: male ? "Male" : "Female",
+        age, hire_date: hire.toISOString().slice(0, 10), years_of_service: Math.round(yos * 10) / 10,
+        position_status: "Filled", employment_status: R.random() < 0.035 ? "On Leave" : "Active",
+        employment_type: type || (level === 6 ? R.pick(["Full-Time", "Contractor", "Part-Time"], [.86, .10, .04]) : "Full-Time"),
+        work_arrangement: wa, salary: Math.round(sal / 100) * 100,
+        performance_rating: R.pick([1, 2, 3, 4, 5], [.04, .14, .50, .24, .08]),
+      });
+    }
+    rows.push(row);
+    return row;
+  };
+  const buildUnit = (unit, d, managerId, parentLoc, isHead) => {
+    const l = loc(d, parentLoc);
+    const row = add({ title: unit.title, level: unit.level, dept: d.name, division: d.division, bu: d.bu,
+      manager_id: managerId, location: l, salaryF: d.salaryF, wa: work(d, unit.level) });
+    row.employee_id = nextId();
+    const cs = isHead ? scale : 1;
+    for (const [spec, child] of unit.children) {
+      const n = count(spec, cs);
+      for (let i = 0; i < n; i++) buildUnit(child, d, row.employee_id, l, false);
+    }
+    const nIc = count(unit.ics, isHead && !unit.children.length ? scale : 1);
+    const titles = unit.ic_titles || d.ic_titles;
+    for (let i = 0; i < nIc; i++) {
+      const vacant = R.random() < d.vacancy;
+      const ic = add({ title: R.choice(titles), level: 6, dept: d.name, division: d.division, bu: d.bu,
+        manager_id: row.employee_id, location: loc(d, l), salaryF: d.salaryF, vacant, wa: work(d, 6) });
+      if (!vacant) ic.employee_id = nextId();
+    }
+  };
+  const EX = ["Executive Office", "Executive Office", "Corporate Services"];
+  const exec = (title, level, mgr) => {
+    const r = add({ title, level, dept: EX[0], division: EX[1], bu: EX[2], manager_id: mgr, location: "Riyadh", type: "Full-Time" });
+    r.employee_id = nextId(); return r;
+  };
+  const ceo = exec("Chief Executive Officer", 0, "");
+  exec("Executive Assistant", 6, ceo.employee_id); exec("Executive Assistant", 6, ceo.employee_id);
+  for (const [division, title] of Object.entries(C_SUITE)) {
+    const cx = exec(title, 1, ceo.employee_id);
+    exec("Executive Assistant", 6, cx.employee_id);
+    for (const d of DEPTS.filter((x) => x.division === division)) buildUnit(d.head, d, cx.employee_id, "Riyadh", true);
+  }
+  for (const d of DEPTS.filter((x) => x.division === "Governance")) buildUnit(d.head, d, ceo.employee_id, "Riyadh", true);
+  const esgHead = add({ title: "Head of ESG & Sustainability", level: 2, dept: "ESG & Sustainability", division: "Governance",
+    bu: "Corporate Services", manager_id: ceo.employee_id, location: "Riyadh", vacant: true });
+  add({ title: "ESG Analyst", level: 6, dept: "ESG & Sustainability", division: "Governance", bu: "Corporate Services",
+    manager_id: "VAC-" + esgHead.position_id, location: "Riyadh", vacant: true });
+
+  const manifest = injectIssues(rows, R);
+  const names = new Map(rows.filter((r) => r.employee_id).map((r) => [r.employee_id, r.employee_name]));
+  for (const r of rows) {
+    if (!r.manager_name) r.manager_name = r.manager_id.startsWith("VAC-") ? "(Vacant)" : names.get(r.manager_id) || "";
+  }
+  return { rows, manifest };
+}
+
+function injectIssues(rows, R) {
+  const manifest = [];
+  const used = new Set();
+  const isMgr = () => new Set(rows.map((r) => r.manager_id));
+  const nameOf = (id) => (rows.find((r) => r.employee_id === id) || {}).employee_name || "";
+  const pickIcs = (dept, n) => {
+    const mgrs = isMgr();
+    const cand = rows.filter((r) => r.position_status === "Filled" && r.department === dept && r.job_level === 6
+      && !used.has(r) && !mgrs.has(r.employee_id));
+    const out = [];
+    for (let i = 0; i < n; i++) { const j = Math.floor(R.random() * cand.length); out.push(cand.splice(j, 1)[0]); }
+    out.forEach((r) => used.add(r));
+    return out;
+  };
+  const push = (issue, expected, recs, dept, detail) => manifest.push({ issue, expected_finding: expected,
+    ids: recs.map((r) => (typeof r === "string" ? r : r.employee_id)), department: dept, detail: detail || "" });
+
+  for (const dept of ["Sales", "Infrastructure", "Supply Chain"]) {
+    const [r] = pickIcs(dept, 1); r.manager_id = ""; r.manager_name = "";
+    push("Missing Manager ID", "ORPHAN_EMPLOYEE", [r], dept);
+  }
+  ["Talent Acquisition", "Applications", "Customer Operations"].forEach((dept, k) => {
+    const [r] = pickIcs(dept, 1); r.manager_id = "E" + (90001 + k);
+    r.manager_name = `${R.choice(FIRST_M)} ${R.choice(LAST)}`;
+    push("Manager ID not found", "INVALID_MANAGER", [r], dept, r.manager_id);
+  });
+  for (const [dept, title] of [["Customer Operations", "Customer Service Supervisor"], ["Marketing", "Marketing Manager"]]) {
+    const sizes = new Map();
+    rows.forEach((r) => sizes.set(r.manager_id, (sizes.get(r.manager_id) || 0) + 1));
+    const m = rows.find((r) => r.department === dept && r.job_title === title
+      && (sizes.get(r.employee_id) || 0) >= 3 && (sizes.get(r.employee_id) || 0) <= 13);
+    m.employment_status = "Terminated"; // position left as "Filled" (stale HR record)
+    const reports = rows.filter((r) => r.manager_id === m.employee_id && r.position_status === "Filled");
+    reports.forEach((r) => used.add(r));
+    push("Reports point to a terminated manager", "TERMINATED_MANAGER", reports, dept, m.employee_id);
+  }
+  const [a, b, c] = pickIcs("Marketing", 3);
+  a.manager_id = b.employee_id; b.manager_id = c.employee_id; c.manager_id = a.employee_id;
+  [a, b, c].forEach((r) => { r.manager_name = nameOf(r.manager_id); });
+  push("Circular reporting (3-cycle)", "CIRCULAR_REPORTING", [a, b, c], "Marketing");
+  const [s] = pickIcs("Data & Analytics", 1); s.manager_id = s.employee_id; s.manager_name = s.employee_name;
+  push("Self-reporting (1-cycle)", "CIRCULAR_REPORTING", [s], "Data & Analytics");
+  for (const dept of ["Accounting", "Sales"]) {
+    const [x, y] = pickIcs(dept, 2); y.position_id = x.position_id;
+    push("Duplicate Position ID", "DUPLICATE_POSITION", [x, y], dept, x.position_id);
+  }
+  const tl = rows.find((r) => r.job_title === "Team Lead");
+  const team = rows.filter((r) => r.manager_id === tl.employee_id);
+  team.forEach((r) => Object.assign(r, { position_status: "Vacant", employee_id: "", employee_name: "", employment_status: "",
+    employment_type: "", work_arrangement: "", salary: null, age: null, performance_rating: null, years_of_service: null, hire_date: "" }));
+  push("Manager-level position with no active reports (team vacant)", "VACANT_POSITION", [tl], "Applications", `${team.length} vacant positions`);
+  { const [r] = pickIcs("HR Operations", 1); r.job_title = "hr analyst"; push("Job title case variant ('hr analyst')", "DUPLICATE_POSITION", [r], "HR Operations"); }
+  for (const dept of ["Procurement", "Quality"]) { const [r] = pickIcs(dept, 1); r.job_title = ""; push("Missing job title", "DATA_QUALITY", [r], dept); }
+  for (const dept of ["Supply Chain", "Customer Operations", "Sales"]) { const [r] = pickIcs(dept, 1); r.salary = null; push("Missing salary", "DATA_QUALITY", [r], dept); }
+  { const [r] = pickIcs("Operations", 1); r.salary = 0; push("Salary = 0", "DATA_QUALITY", [r], "Operations"); }
+  { const [r] = pickIcs("Applications", 1); r.department = ""; push("Missing department", "DATA_QUALITY", [r], "Applications"); }
+  { const [r] = pickIcs("Accounting", 1);
+    rows.push({ ...r, employee_name: `${R.choice(FIRST_F)} ${R.choice(LAST)}`, position_id: "P99001" });
+    push("Duplicate Employee ID", "DATA_QUALITY", [r], "Accounting"); }
+  return manifest;
+}
+
+/* ===================================================================================
+   Loading & normalisation
+   =================================================================================== */
+const ALIASES = {
+  employee_id: ["employeeid", "empid", "employeenumber", "empno", "id", "رقمالموظف"],
+  employee_name: ["employeename", "name", "fullname", "الاسم", "اسمالموظف"],
+  gender: ["gender", "sex", "الجنس"], age: ["age", "العمر"],
+  hire_date: ["hiredate", "dateofhire", "joiningdate", "startdate", "تاريخالتوظيف"],
+  employment_status: ["employmentstatus", "status", "employeestatus", "الحالةالوظيفية"],
+  job_title: ["jobtitle", "title", "position", "positiontitle", "المسمىالوظيفي"],
+  job_level: ["joblevel", "level", "layer", "المستوىالوظيفي"], grade: ["grade", "jobgrade", "paygrade", "الدرجة"],
+  department: ["department", "dept", "الإدارة", "الادارة"], division: ["division", "sector", "القطاع"],
+  business_unit: ["businessunit", "bu", "وحدةالأعمال"], location: ["location", "site", "city", "الموقع"],
+  manager_id: ["managerid", "supervisorid", "reportsto", "linemanagerid", "رقمالمدير"],
+  manager_name: ["managername", "supervisorname", "linemanager", "اسمالمدير"],
+  salary: ["salary", "basesalary", "annualsalary", "الراتب"],
+  position_id: ["positionid", "positionnumber", "posid", "رقمالوظيفة"], position_status: ["positionstatus", "حالةالوظيفة"],
+  employment_type: ["employmenttype", "contracttype", "نوعالتوظيف"], work_arrangement: ["workarrangement", "workmode", "workmodel"],
+  performance_rating: ["performancerating", "rating", "performance", "تقييمالأداء"],
+  years_of_service: ["yearsofservice", "tenure", "yos", "سنواتالخدمة"],
+};
+const keyOf = (t) => String(t).trim().toLowerCase().replace(/[\s_\-./]+/g, "");
+const ALIAS_LOOKUP = {};
+for (const [c, list] of Object.entries(ALIASES)) { for (const a of list) ALIAS_LOOKUP[a] = c; ALIAS_LOOKUP[keyOf(c)] = c; }
+const STATUS_MAP = { active: "Active", employed: "Active", onleave: "On Leave", leave: "On Leave", loa: "On Leave",
+  terminated: "Terminated", inactive: "Terminated", resigned: "Terminated", exited: "Terminated", separated: "Terminated" };
+const POSITION_MAP = { filled: "Filled", occupied: "Filled", vacant: "Vacant", open: "Vacant" };
+const TYPE_MAP = { fulltime: "Full-Time", parttime: "Part-Time", contractor: "Contractor", contract: "Contractor", temporary: "Contractor" };
+const WORK_MAP = { onsite: "On-site", office: "On-site", hybrid: "Hybrid", remote: "Remote" };
+const STR_COLS = ["employee_id", "employee_name", "gender", "employment_status", "job_title", "grade", "department",
+  "division", "business_unit", "location", "manager_id", "manager_name", "position_id", "position_status",
+  "employment_type", "work_arrangement", "hire_date"];
+
+function mapColumns(headers) {
+  const mapping = {}, taken = new Set();
+  for (const h of headers) { const c = ALIAS_LOOKUP[keyOf(h)]; if (c && !taken.has(c)) { mapping[h] = c; taken.add(c); } }
+  return mapping;
+}
+const cleanStr = (v) => (v == null ? "" : String(v).replace(/\s+/g, " ").trim().replace(/^(nan|None|NaN|null|undefined)$/, ""));
+const cleanId = (v) => cleanStr(v).replace(/^(\d+)\.0$/, "$1");
+function toNum(v) {
+  if (v == null || v === "") return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  const n = Number(String(v).replace(/[,\s]/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+const mapVal = (v, m) => (v ? m[keyOf(v)] || v : "");
+
+/** Raw rows (objects with any headers) -> normalised records. Never throws on bad content. */
+function normalize(rawRows) {
+  const headers = rawRows.length ? Object.keys(rawRows[0]) : [];
+  const mapping = mapColumns(headers);
+  const recs = rawRows.map((raw, i) => {
+    const r = { row_number: i + 1 };
+    for (const c of COLUMNS) r[c] = "";
+    for (const [h, c] of Object.entries(mapping)) r[c] = raw[h];
+    for (const c of STR_COLS) r[c] = (c.endsWith("_id") ? cleanId : cleanStr)(r[c]);
+    r.employment_status = mapVal(r.employment_status, STATUS_MAP);
+    r.position_status = mapVal(r.position_status, POSITION_MAP);
+    r.employment_type = mapVal(r.employment_type, TYPE_MAP);
+    r.work_arrangement = mapVal(r.work_arrangement, WORK_MAP);
+    const lv = r.job_level == null ? "" : String(r.job_level).match(/-?\d+/);
+    r.job_level = lv ? Number(lv[0]) : null;
+    for (const c of ["age", "salary", "performance_rating", "years_of_service"]) r[c] = toNum(r[c]);
+    if (r.hire_date) { const d = new Date(r.hire_date); r.hire_date = isNaN(d) ? "" : d.toISOString().slice(0, 10); r._badDate = isNaN(d); }
+    if (!r.position_status) r.position_status = r.employee_id ? "Filled" : "Vacant";
+    r.is_vacant = r.position_status === "Vacant";
+    if (!r.is_vacant && !r.employment_status) r.employment_status = "Active";
+    r.node_id = r.employee_id || (r.is_vacant ? "VAC-" + (r.position_id || "ROW" + r.row_number) : "NOID-" + r.row_number);
+    return r;
+  });
+  const seen = new Set();
+  for (const r of recs) {
+    r.is_dup = seen.has(r.node_id); seen.add(r.node_id);
+    r.is_active = !r.is_vacant && (r.employment_status === "Active" || r.employment_status === "On Leave") && !r.is_dup;
+  }
+  return recs;
+}
+
+function validateImport(rawRows) {
+  const issues = [];
+  const add = (level, field, message, rows = []) => issues.push({ level, field, message, count: rows.length, rows: rows.slice(0, 20).join(", ") });
+  if (!rawRows.length) { add("Error", "*", "الملف لا يحتوي على أي سجلات."); return { ok: false, issues, mapping: {} }; }
+  const mapping = mapColumns(Object.keys(rawRows[0]));
+  const present = new Set(Object.values(mapping));
+  const required = ["employee_id", "employee_name", "manager_id", "job_title", "department", "division", "business_unit",
+    "job_level", "salary", "employment_status", "position_id", "position_status"];
+  for (const c of required) if (!present.has(c)) {
+    const err = c === "employee_id" || c === "manager_id";
+    issues.push({ level: err ? "Error" : "Warning", field: c, message: `العمود المطلوب '${LABELS[c]}' غير موجود في الملف.` + (err ? "" : " سيتم إنشاؤه فارغًا."), count: 0, rows: "" });
+  }
+  if (issues.some((i) => i.level === "Error")) return { ok: false, issues, mapping };
+  const recs = normalize(rawRows);
+  const rn = (f) => recs.filter(f).map((r) => r.row_number);
+  const idCount = new Map(); recs.forEach((r) => r.employee_id && idCount.set(r.employee_id, (idCount.get(r.employee_id) || 0) + 1));
+  const dup = rn((r) => r.employee_id && idCount.get(r.employee_id) > 1); if (dup.length) add("Warning", "employee_id", "Employee ID مكرر (سيتم استبعاد التكرارات من التحليل الهيكلي).", dup);
+  const ids = new Set(recs.map((r) => r.node_id));
+  const bad = rn((r) => r.manager_id && !ids.has(r.manager_id)); if (bad.length) add("Warning", "manager_id", "Manager ID غير موجود ضمن أرقام الموظفين.", bad);
+  const self = rn((r) => r.manager_id && r.manager_id === r.node_id); if (self.length) add("Warning", "manager_id", "الموظف مسجل كمدير لنفسه.", self);
+  const roots = rn((r) => r.is_active && !r.manager_id);
+  if (!roots.length) add("Warning", "manager_id", "لا يوجد موظف نشط بدون مدير؛ لا يمكن تحديد الـCEO.");
+  else if (roots.length > 1) add("Info", "manager_id", "أكثر من موظف نشط بدون مدير؛ سيتم اختيار الـCEO تلقائيًا واعتبار الباقين Orphan Employees.", roots);
+  const unk = rn((r) => !r.is_vacant && !["Active", "On Leave", "Terminated"].includes(r.employment_status));
+  if (unk.length) add("Warning", "employment_status", "حالة وظيفية غير معروفة (المسموح: Active, On Leave, Terminated).", unk);
+  const badDate = rn((r) => r._badDate); if (badDate.length) add("Warning", "hire_date", "تواريخ توظيف غير قابلة للقراءة.", badDate);
+  if (!issues.length) add("Info", "*", "لم يتم العثور على مشكلات تمنع التحليل.");
+  return { ok: !issues.some((i) => i.level === "Error"), issues, mapping };
+}
+
+/* ===================================================================================
+   Hierarchy engine
+   =================================================================================== */
+function buildModel(recsIn) {
+  const recs = recsIn.map((r) => ({ ...r }));
+  const byId = new Map();
+  for (const r of recs) if (!r.is_dup) byId.set(r.node_id, r);
+  const inGraph = (id) => { const r = byId.get(id); return !!r && (r.is_active || r.is_vacant); };
+  const parent = new Map(), children = new Map();
+  for (const r of recs) {
+    if (r.is_dup || !(r.is_active || r.is_vacant)) continue;
+    children.set(r.node_id, children.get(r.node_id) || []);
+    if (r.manager_id && inGraph(r.manager_id)) {
+      parent.set(r.node_id, r.manager_id);
+      if (r.manager_id !== r.node_id) {
+        if (!children.has(r.manager_id)) children.set(r.manager_id, []);
+        children.get(r.manager_id).push(r.node_id);
+      }
+    }
+  }
+  // cycles in a functional graph (each node has at most one manager)
+  const color = new Map(), cycles = [], inCycle = new Set();
+  for (const start of children.keys()) {
+    if (color.get(start)) continue;
+    const path = []; let cur = start;
+    while (cur !== undefined && !color.get(cur)) { color.set(cur, 1); path.push(cur); cur = parent.get(cur); }
+    if (cur !== undefined && color.get(cur) === 1) { // closed a new loop
+      const loop = path.slice(path.indexOf(cur));
+      const i = loop.indexOf([...loop].sort()[0]);
+      const rot = loop.slice(i).concat(loop.slice(0, i)); // reporting order: employee -> manager -> ...
+      cycles.push(rot); rot.forEach((n) => inCycle.add(n));
+    }
+    path.forEach((n) => color.set(n, 2));
+  }
+  // CEO
+  const roots = recs.filter((r) => r.is_active && !r.manager_id && !inCycle.has(r.node_id));
+  const desc = (id) => { let n = 0; const st = [id]; const seen = new Set([id]);
+    while (st.length) for (const c of children.get(st.pop()) || []) if (!seen.has(c)) { seen.add(c); n++; st.push(c); } return n; };
+  let ceo = null;
+  if (roots.length === 1) ceo = roots[0].node_id;
+  else if (roots.length > 1) {
+    ceo = roots.map((r) => ({ id: r.node_id, lvl: r.job_level ?? 99, t: /\b(CEO|Chief Executive)/i.test(r.job_title) ? 0 : 1, s: -desc(r.node_id) }))
+      .sort((a, b) => a.lvl - b.lvl || a.t - b.t || a.s - b.s)[0].id;
+  }
+  // depth (BFS)
+  const depth = new Map(), order = [];
+  if (ceo) { depth.set(ceo, 0); const q = [ceo];
+    for (let i = 0; i < q.length; i++) { const n = q[i]; order.push(n);
+      for (const c of children.get(n) || []) if (!depth.has(c)) { depth.set(c, depth.get(n) + 1); q.push(c); } } }
+  // spans
+  const active = (id) => !!(byId.get(id) || {}).is_active;
+  const direct = new Map(), vacDirect = new Map();
+  for (const [p, cs] of children) for (const c of cs) {
+    if (active(c)) direct.set(p, (direct.get(p) || 0) + 1); else vacDirect.set(p, (vacDirect.get(p) || 0) + 1);
+  }
+  // subtree sizes (Kahn from the leaves; loops summed as one component)
+  const remaining = new Map([...children].map(([k, v]) => [k, v.length]));
+  const acc = new Map([...children.keys()].map((k) => [k, 0]));
+  const total = new Map();
+  const q = [...children.keys()].filter((k) => remaining.get(k) === 0);
+  for (let i = 0; i < q.length; i++) {
+    const n = q[i]; total.set(n, acc.get(n));
+    const p = parent.get(n);
+    if (p !== undefined && p !== n) { acc.set(p, acc.get(p) + acc.get(n) + (active(n) ? 1 : 0));
+      remaining.set(p, remaining.get(p) - 1); if (remaining.get(p) === 0) q.push(p); }
+  }
+  for (const cyc of cycles) {
+    const comp = sum(cyc.map((m) => acc.get(m) + (active(m) ? 1 : 0)));
+    cyc.forEach((m) => total.set(m, comp - (active(m) ? 1 : 0)));
+  }
+  for (const k of children.keys()) if (!total.has(k)) total.set(k, acc.get(k)); // below a loop
+  // enrich records
+  for (const r of recs) {
+    const id = r.node_id, mid = r.manager_id, m = byId.get(mid);
+    let st;
+    if (r.is_dup) st = RS.DUP;
+    else if (r.is_vacant) st = RS.VACANT;
+    else if (!r.is_active) st = RS.INACTIVE;
+    else if (id === ceo) st = RS.CEO;
+    else if (inCycle.has(id)) st = RS.CIRCULAR;
+    else if (!mid) st = RS.MISSING;
+    else if (!m) st = RS.INVALID;
+    else if (!m.is_active && !m.is_vacant) st = RS.TERMINATED;
+    else st = depth.has(id) ? RS.VALID : RS.DISCONNECTED;
+    r.status = st;
+    const inG = !r.is_dup && (r.is_active || r.is_vacant);
+    r.depth = !r.is_dup && depth.has(id) ? depth.get(id) : null;
+    r.direct = inG ? direct.get(id) || 0 : 0;
+    r.vacDirect = inG ? vacDirect.get(id) || 0 : 0;
+    r.total = inG ? total.get(id) || 0 : 0;
+    r.isMgr = r.is_active && r.direct > 0;
+  }
+  const model = { recs, byId: new Map(recs.filter((r) => !r.is_dup).map((r) => [r.node_id, r])), children, parent, ceo, cycles, inCycle, order };
+  return model;
+}
+
+function chainUp(model, id, max = 200) {
+  const chain = [], seen = new Set(); let cur = id;
+  while (cur && !seen.has(cur) && chain.length < max) {
+    chain.push(cur); seen.add(cur);
+    const r = model.byId.get(cur); if (!r) break; cur = r.manager_id;
+  }
+  if (cur && seen.has(cur)) chain.push(cur);
+  return chain;
+}
+const directIds = (model, id, includeVacant = false) =>
+  (model.children.get(id) || []).filter((c) => includeVacant || model.byId.get(c).is_active);
+function subtreeIds(model, id, includeRoot = true, includeVacant = false) {
+  const out = new Set(), st = [id];
+  while (st.length) for (const c of model.children.get(st.pop()) || []) if (!out.has(c) && c !== id) { out.add(c); st.push(c); }
+  const res = [...out].filter((c) => includeVacant || model.byId.get(c).is_active);
+  if (includeRoot) res.unshift(id);
+  return res;
+}
+function depthStats(model, recs) {
+  const d = recs.filter((r) => r.is_active && r.depth != null && r.node_id !== model.ceo).map((r) => r.depth);
+  return { min: d.length ? Math.min(...d) : NaN, max: d.length ? Math.max(...d) : NaN, mean: mean(d), median: median(d), count: d.length };
+}
+const layerCount = (recs) => new Set(recs.filter((r) => r.is_active && r.depth != null).map((r) => r.depth)).size;
+function longestChains(model, recs, top = 10) {
+  return recs.filter((r) => r.is_active && r.depth != null)
+    .sort((a, b) => b.depth - a.depth || (a.node_id < b.node_id ? -1 : 1)).slice(0, top)
+    .map((r) => { const ch = chainUp(model, r.node_id).reverse();
+      return { node_id: r.node_id, employee_name: r.employee_name, job_title: r.job_title, department: r.department, depth: r.depth,
+        chain: ch.map((n) => (model.byId.get(n) || {}).job_title || n).join(" ← "), chain_ids: ch.join(" ← ") }; });
+}
+function departmentHeads(model) {
+  const heads = {};
+  const act = model.recs.filter((r) => r.is_active && r.department);
+  for (const [dept, grp] of groupBy(act, (r) => r.department)) {
+    let tops = grp.filter((r) => (model.byId.get(r.manager_id) || {}).department !== dept);
+    if (!tops.length) tops = grp;
+    tops.sort((a, b) => (a.depth ?? 999) - (b.depth ?? 999) || b.total - a.total);
+    heads[dept] = tops[0].node_id;
+  }
+  return heads;
+}
+
+/* ===================================================================================
+   Span, units, layers, titles
+   =================================================================================== */
+const spanCat = (n, s) => (n <= s.low ? "Low" : n > s.high ? "High" : "Within Range");
+function spanStats(arr) {
+  return { count: arr.length, min: arr.length ? Math.min(...arr) : NaN, max: arr.length ? Math.max(...arr) : NaN,
+    mean: mean(arr), median: median(arr), p25: quantile(arr, .25), p75: quantile(arr, .75) };
+}
+function unitMetrics(recs, by, s) {
+  const units = new Map();
+  const get = (k) => { if (!units.has(k)) units.set(k, { act: [], vac: [] }); return units.get(k); };
+  for (const r of recs) { if (r.is_active) get(label(r[by])).act.push(r); else if (r.is_vacant && !r.is_dup) get(label(r[by])).vac.push(r); }
+  const out = [];
+  for (const [unit, { act, vac }] of units) {
+    const mg = act.filter((r) => r.isMgr), spans = mg.map((r) => r.direct);
+    const depths = act.map((r) => r.depth).filter(isNum), sal = act.map((r) => r.salary).filter(isNum);
+    const row = { [by]: unit, headcount: act.length, managers: mg.length, management_ratio: act.length ? mg.length / act.length : NaN,
+      avg_span: mean(spans), median_span: median(spans), avg_depth: mean(depths), max_depth: depths.length ? Math.max(...depths) : NaN,
+      layers: new Set(depths).size, vacancies: vac.length, positions: act.length + vac.length,
+      vacancy_rate: act.length + vac.length ? vac.length / (act.length + vac.length) : NaN,
+      avg_salary: mean(sal), median_salary: median(sal),
+      invalid_reporting: act.filter((r) => INVALID_RS.has(r.status)).length,
+      low_span_managers: spans.filter((n) => n <= s.low).length, high_span_managers: spans.filter((n) => n > s.high).length };
+    if (by === "department") { const mode = (k) => { const c = groupBy([...act, ...vac], (r) => r[k]); return [...c].sort((a, b) => b[1].length - a[1].length)[0]?.[0] || ""; };
+      row.division = mode("division"); row.business_unit = mode("business_unit"); }
+    out.push(row);
+  }
+  return out.sort((a, b) => b.headcount - a.headcount);
+}
+function layerMetrics(recs, basis) {
+  const act = recs.filter((r) => r.is_active);
+  const grp = groupBy(act, (r) => (r[basis] == null ? -1 : r[basis]));
+  return [...grp].sort((a, b) => (a[0] < 0) - (b[0] < 0) || a[0] - b[0]).map(([k, rs]) => {
+    const mg = rs.filter((r) => r.isMgr);
+    return { layer: k < 0 ? "—" : k, layer_name: basis === "job_level" ? (k < 0 ? "Unknown level" : LEVEL_NAMES[k] || "Level " + k) : (k < 0 ? "Unreachable" : "Layer " + k),
+      employees: rs.length, pct_of_total: rs.length / act.length, managers: mg.length,
+      avg_salary: mean(rs.map((r) => r.salary).filter(isNum)), avg_span: mean(mg.map((r) => r.direct)) };
+  });
+}
+
+// difflib.SequenceMatcher.ratio (Ratcliff/Obershelp)
+function seqRatio(a, b) {
+  const matches = (a1, a2, b1, b2) => {
+    let best = 0, bi = 0, bj = 0;
+    for (let i = a1; i < a2; i++) for (let j = b1; j < b2; j++) {
+      let k = 0; while (i + k < a2 && j + k < b2 && a[i + k] === b[j + k]) k++;
+      if (k > best) { best = k; bi = i; bj = j; }
+    }
+    if (!best) return 0;
+    return best + matches(a1, bi, b1, bj) + matches(bi + best, a2, bj + best, b2);
+  };
+  const t = a.length + b.length;
+  return t ? (2 * matches(0, a.length, 0, b.length)) / t : 1;
+}
+const SENIORITY = new Set(["senior", "sr", "junior", "jr", "staff", "lead", "principal", "chief", "head", "assistant", "associate", "i", "ii", "iii"]);
+const STOP = new Set(["&", "and", "of", "the", "-", ","]);
+const normTitle = (t) => String(t).toLowerCase().replace(/[^\w&/ ]+/g, " ").replace(/\s+/g, " ").trim();
+const coreTitle = (n) => n.split(" ").filter((w) => !SENIORITY.has(w)).join(" ");
+function acronymForm(n) {
+  const w = n.split(" ").filter((x) => !STOP.has(x));
+  if (w.length < 2) return n;
+  return w.slice(0, -1).map((x) => (x.includes("&") ? x.replace(/&/g, "") : x[0])).join("") + " " + w[w.length - 1];
+}
+function titleSimilarity(a, b) {
+  const na = normTitle(a), nb = normTitle(b);
+  if (na === nb) return 1;
+  if (acronymForm(na) === acronymForm(nb) && na.split(" ").length !== nb.split(" ").length) return 0.95;
+  const ta = na.split(" ").filter((w) => !STOP.has(w)), tb = nb.split(" ").filter((w) => !STOP.has(w));
+  const sa = new Set(ta), sb = new Set(tb);
+  const ratio = seqRatio(na, nb);
+  const subset = (x, y) => x.size < y.size && [...x].every((w) => y.has(w));
+  if (subset(sa, sb) || subset(sb, sa)) return ratio;
+  const da = [...sa].filter((w) => !sb.has(w)), db = [...sb].filter((w) => !sa.has(w));
+  if (da.length === 1 && db.length === 1 && ta.length === tb.length && seqRatio(da[0], db[0]) >= 0.5) return ratio;
+  return 0;
+}
+function jobTitleAnalysis(recs, s) {
+  const rows = recs.filter((r) => (r.is_active || r.is_vacant) && !r.is_dup && r.job_title);
+  const byTitle = groupBy(rows, (r) => r.job_title);
+  const titles = [...byTitle].map(([t, rs]) => ({ job_title: t, positions: rs.length,
+    departments: [...new Set(rs.map((r) => r.department).filter(Boolean))].sort().join(", "), normalized: normTitle(t) }))
+    .sort((a, b) => b.positions - a.positions);
+  const variants = [];
+  for (const [norm, grp] of groupBy(titles, (t) => t.normalized)) if (grp.length > 1)
+    variants.push({ normalized_title: norm, variants: grp.map((t) => t.job_title).join(" | "), positions: sum(grp.map((t) => t.positions)),
+      departments: [...new Set(grp.flatMap((t) => t.departments.split(", ")).filter(Boolean))].sort().join(", ") });
+  const info = new Map(titles.map((t) => [t.job_title, t]));
+  const seen = new Set(), similar = [];
+  for (const [div, grp] of groupBy(rows, (r) => label(r.division))) {
+    const reps = new Map(); for (const t of new Set(grp.map((r) => r.job_title))) if (!reps.has(normTitle(t))) reps.set(normTitle(t), t);
+    const list = [...reps.values()].sort();
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j], key = a + "\u0000" + b;
+      if (seen.has(key) || coreTitle(normTitle(a)) === coreTitle(normTitle(b))) continue;
+      const sc = titleSimilarity(a, b);
+      if (sc >= s.similarity) { seen.add(key);
+        similar.push({ title_a: a, title_b: b, similarity: +sc.toFixed(3), division: div, positions_a: info.get(a).positions,
+          positions_b: info.get(b).positions, departments_a: info.get(a).departments, departments_b: info.get(b).departments }); }
+    }
+  }
+  similar.sort((x, y) => y.similarity - x.similarity);
+  return { titles, variants, similar };
+}
+
+/* ===================================================================================
+   X-Ray Findings
+   =================================================================================== */
+const nameOf = (r) => (r.employee_name ? `${r.employee_name} (${r.job_title})` : r.node_id);
+const lvl = (v) => (v == null ? "—" : String(v));
+
+function detectFindings(model, s) {
+  const out = [];
+  const F = (o) => out.push({ threshold: null, benchmark: "", related: [], ...o });
+  const recs = model.recs;
+  const mgrs = recs.filter((r) => r.isMgr);
+  const orgMedian = median(mgrs.map((r) => r.direct));
+
+  // cycles
+  for (const cyc of model.cycles) {
+    const down = new Set(); cyc.forEach((n) => subtreeIds(model, n, false).forEach((x) => down.add(x)));
+    cyc.forEach((n) => down.delete(n));
+    const path = cyc.concat([cyc[0]]).map((n) => `${n} (${model.byId.get(n).employee_name})`).join(" → ");
+    F({ type: "CIRCULAR_REPORTING", severity: "Critical", entity_type: "Reporting Loop", entity_id: cyc.join(" → "),
+      entity_name: `${cyc.length}-employee loop`, department: model.byId.get(cyc[0]).department,
+      description: cyc.length > 1 ? "تم اكتشاف علاقة إدارية دائرية: سلسلة المديرين تعود إلى نفس الموظف ولا تصل إلى الـCEO." : "موظف مسجل كمدير لنفسه (Manager ID = Employee ID).",
+      evidence: `المسار: ${path}. عدد الموظفين خارج الحلقة المتأثرين (لا يصلون إلى الـCEO) = ${down.size}.`,
+      recommended: "تصحيح Manager ID لأحد أعضاء الحلقة على الأقل بحيث تصل السلسلة إلى الـCEO.",
+      rule: "loop in the reporting graph (strongly connected component or self-loop)", metric: "Loop length", value: cyc.length,
+      related: [...cyc, ...down] });
+  }
+  // reporting relationships
+  for (const r of recs.filter((x) => x.status === RS.MISSING))
+    F({ type: "ORPHAN_EMPLOYEE", severity: "Significant", entity_type: "Employee", entity_id: r.node_id, entity_name: nameOf(r), department: r.department,
+      description: "موظف بدون Manager ID وليس هو الـCEO (Invalid Reporting Relationship).",
+      evidence: `Manager ID فارغ. الـCEO المحدد في البيانات = ${model.ceo}. عدد التابعين لهذا الموظف = ${r.total}. رقم السجل في الملف = ${r.row_number}.`,
+      recommended: "التحقق من المدير المباشر الفعلي وتحديث Manager ID في نظام الموارد البشرية.",
+      rule: "manager_id is blank AND employee is not the CEO", metric: "Manager ID", value: "(blank)", related: [r.node_id] });
+  for (const r of recs.filter((x) => x.status === RS.INVALID))
+    F({ type: "INVALID_MANAGER", severity: "Significant", entity_type: "Employee", entity_id: r.node_id, entity_name: nameOf(r), department: r.department,
+      description: `Manager ID (${r.manager_id}) غير موجود في البيانات (Invalid Reporting Relationship).`,
+      evidence: `Manager ID = ${r.manager_id}، Manager Name المسجل = '${r.manager_name || "—"}'. لا يوجد أي سجل بهذا الرقم. رقم السجل في الملف = ${r.row_number}.`,
+      recommended: "التحقق من صحة رقم المدير (خطأ إدخال، مدير لم يُنقل للنظام، أو رقم قديم).",
+      rule: "manager_id not found among Employee IDs", metric: "Manager ID", value: r.manager_id, related: [r.node_id] });
+  for (const [mid, grp] of groupBy(recs.filter((x) => x.status === RS.TERMINATED), (r) => r.manager_id)) {
+    const m = model.byId.get(mid);
+    F({ type: "TERMINATED_MANAGER", severity: "Significant", entity_type: "Manager", entity_id: mid, entity_name: nameOf(m), department: m.department,
+      description: `${grp.length} موظف/موظفين ما زالوا يتبعون مديرًا حالته الوظيفية '${m.employment_status}' (Invalid Reporting Relationship).`,
+      evidence: `المدير ${mid} – ${m.employee_name}: Employment Status = ${m.employment_status}، Position Status = ${m.position_status}. الموظفون المتأثرون: ${grp.slice(0, 15).map((r) => r.node_id).join(", ")}${grp.length > 15 ? " …" : ""}.`,
+      recommended: "تحديد المدير البديل أو المكلف، وتحديث Manager ID للموظفين، ومراجعة حالة الوظيفة (قد تكون شاغرة فعليًا).",
+      rule: "manager record exists but Employment Status is not Active / On Leave", metric: "Affected employees", value: grp.length,
+      related: [mid, ...grp.map((r) => r.node_id)] });
+  }
+  // span
+  let scope = mgrs.filter((r) => r.status !== RS.CIRCULAR);
+  if (s.excludeExec) scope = scope.filter((r) => r.job_level !== 0 && r.job_level !== 1);
+  for (const r of scope) {
+    const n = r.direct;
+    const common = `الوسيط التنظيمي لـSpan of Control = ${g(orgMedian)}. إجمالي التابعين (مباشر وغير مباشر) = ${r.total}. وظائف شاغرة تابعة مباشرة = ${r.vacDirect}. Job Level = ${lvl(r.job_level)}.`;
+    const rel = [r.node_id, ...directIds(model, r.node_id)];
+    if (n <= s.low) F({ type: "LOW_SPAN_OF_CONTROL", severity: n === 1 ? "Attention" : "Informational", entity_type: "Manager", entity_id: r.node_id,
+      entity_name: nameOf(r), department: r.department,
+      description: `تم اكتشاف Span of Control منخفض ويحتاج إلى مراجعة: لدى هذا المدير ${n} موظف/موظفين مباشرين، مقارنة بالحد المحدد حاليًا وهو ${s.low}.`,
+      evidence: `عدد الموظفين المباشرين النشطين = ${n}. ${common}`,
+      recommended: "مراجعة سبب محدودية نطاق الإشراف: هل الدور تخصصي أو قيادي فني؟ هل توجد وظائف شاغرة ستُشغل قريبًا؟ هل يمكن دمج الفريق مع فريق مجاور؟ النتيجة لا تعني أن الدور غير ضروري.",
+      rule: `direct_reports <= Low Span Threshold (${s.low})`, metric: "Direct Reports", value: n, threshold: s.low,
+      benchmark: `Organizational median = ${g(orgMedian)}`, related: rel });
+    else if (n > s.high) { const ratio = n / s.high;
+      F({ type: "HIGH_SPAN_OF_CONTROL", severity: ratio <= 1.5 ? "Attention" : ratio <= 2.5 ? "Significant" : "Critical", entity_type: "Manager",
+        entity_id: r.node_id, entity_name: nameOf(r), department: r.department,
+        description: `تم اكتشاف Span of Control مرتفع: لدى هذا المدير ${n} موظفًا مباشرًا مقارنة بالحد المحدد حاليًا وهو ${s.high} وبوسيط تنظيمي يبلغ ${g(orgMedian)}.`,
+        evidence: `هذا المدير لديه ${n} موظفًا مباشرًا مقارنة بوسيط تنظيمي يبلغ ${g(orgMedian)} (أي ${(n / orgMedian).toFixed(1)}× الوسيط). ${common}`,
+        recommended: "مراجعة طبيعة العمل (عمل متجانس/تشغيلي قد يتحمل نطاقًا أوسع)، وجود قادة فرق غير رسميين، وعبء الإشراف والتقييم على المدير.",
+        rule: `direct_reports > High Span Threshold (${s.high})`, metric: "Direct Reports", value: n, threshold: s.high,
+        benchmark: `Organizational median = ${g(orgMedian)}`, related: rel }); }
+  }
+  // deep hierarchy
+  const reach = recs.filter((r) => r.is_active && r.depth != null);
+  const dMed = median(reach.map((r) => r.depth)), dMax = reach.length ? Math.max(...reach.map((r) => r.depth)) : NaN;
+  for (const [dept, grp] of groupBy(reach, (r) => r.department)) {
+    const deep = grp.filter((r) => r.depth > s.deep); if (!deep.length) continue;
+    const maxD = Math.max(...grp.map((r) => r.depth));
+    const deepest = [...grp].sort((a, b) => b.depth - a.depth || (a.node_id < b.node_id ? -1 : 1))[0];
+    const chain = chainUp(model, deepest.node_id).reverse().map((n) => (model.byId.get(n) || {}).job_title || n).join(" ← ");
+    F({ type: "DEEP_HIERARCHY", severity: maxD - s.deep === 1 ? "Attention" : "Significant", entity_type: "Department", entity_id: label(dept),
+      entity_name: label(dept), department: dept,
+      description: `تم اكتشاف تسلسل إداري عميق (Deep Reporting Chain): أقصى عمق في الإدارة ${maxD} علاقات إدارية حتى الـCEO، مقارنة بالحد المحدد ${s.deep}.`,
+      evidence: `${deep.length} موظف/موظفين على عمق أكبر من ${s.deep}. عدد الطبقات في الإدارة = ${new Set(grp.map((r) => r.depth)).size}. الوسيط التنظيمي للعمق = ${g(dMed)}، والحد الأقصى على مستوى المنظمة = ${dMax}. أطول سلسلة: ${chain}.`,
+      recommended: "مراجعة ما إذا كانت كل طبقة تضيف نطاق مسؤولية مختلفًا، وهل توجد مسميات متتالية بنفس المستوى الوظيفي (مثل Senior Director ثم Director)، وأثر العمق على سرعة القرار.",
+      rule: `employee depth > Deep Hierarchy Threshold (${s.deep})`, metric: "Max Depth", value: maxD, threshold: s.deep,
+      benchmark: `Organizational median depth = ${g(dMed)}`, related: deep.map((r) => r.node_id) });
+  }
+  // units
+  const units = unitMetrics(recs, "department", s);
+  const actAll = recs.filter((r) => r.is_active);
+  const orgRatio = actAll.filter((r) => r.isMgr).length / actAll.length;
+  const medHc = median(units.map((u) => u.headcount));
+  for (const u of units) {
+    const dept = u.department;
+    const members = recs.filter((r) => label(r.department) === dept && (r.is_active || r.is_vacant) && !r.is_dup).map((r) => r.node_id);
+    if (u.headcount <= s.small)
+      F({ type: "SMALL_DEPARTMENT", severity: u.headcount === 0 ? "Attention" : "Informational", entity_type: "Department", entity_id: dept, entity_name: dept, department: dept,
+        description: `Small Organizational Unit: عدد الموظفين النشطين في الإدارة = ${u.headcount}، مقارنة بالحد المحدد ${s.small}.`,
+        evidence: `Headcount = ${u.headcount}، الوظائف الشاغرة = ${u.vacancies}، عدد المديرين = ${u.managers}. وسيط حجم الإدارات = ${g(medHc)}.`,
+        recommended: "مراجعة ما إذا كانت الوحدة وظيفة متخصصة مستقلة بطبيعتها، أو قيد التأسيس، أو يمكن ضمها لوحدة ذات صلة.",
+        rule: `department headcount <= Small Department Threshold (${s.small})`, metric: "Headcount", value: u.headcount, threshold: s.small,
+        benchmark: `Median department headcount = ${g(medHc)}`, related: members });
+    if (u.headcount > s.small && u.management_ratio > s.ratio)
+      F({ type: "HIGH_MANAGEMENT_RATIO", severity: u.management_ratio <= 2 * s.ratio ? "Attention" : "Significant", entity_type: "Department",
+        entity_id: dept, entity_name: dept, department: dept,
+        description: `نسبة المديرين في الإدارة ${pct(u.management_ratio)} مقارنة بالحد المحدد ${pct(s.ratio)}.`,
+        evidence: `Management Ratio = ${u.managers} مدير ÷ ${u.headcount} موظف = ${pct(u.management_ratio)}. النسبة على مستوى المنظمة = ${pct(orgRatio)}. متوسط Span of Control في الإدارة = ${fmt(u.avg_span, 2)}. عدد الطبقات = ${u.layers}.`,
+        recommended: "مراجعة عدد المستويات الإشرافية مقارنة بحجم الفريق، ووجود مديرين بفرق صغيرة جدًا، وإمكانية تبسيط الهيكل.",
+        rule: `managers / headcount > High Management Ratio (${pct(s.ratio, 0)})`, metric: "Management Ratio", value: pct(u.management_ratio),
+        threshold: pct(s.ratio, 0), benchmark: `Organization ratio = ${pct(orgRatio)}`, related: members });
+  }
+  // duplicates
+  const posCount = groupBy(recs.filter((r) => r.position_id && !r.is_dup), (r) => r.position_id);
+  for (const [pid, grp] of posCount) if (grp.length > 1)
+    F({ type: "DUPLICATE_POSITION", severity: "Significant", entity_type: "Position", entity_id: pid,
+      entity_name: [...new Set(grp.map((r) => r.job_title))].join(", "), department: grp[0].department,
+      description: `Position ID ${pid} مسجل لأكثر من سجل (${grp.length} سجلات).`,
+      evidence: "السجلات: " + grp.map((r) => `${r.node_id} – ${r.employee_name} (row ${r.row_number})`).join("; "),
+      recommended: "التحقق من أن كل موظف مرتبط بوظيفة مستقلة في هيكل الوظائف.",
+      rule: "position_id appears on more than one record", metric: "Records", value: grp.length, related: grp.map((r) => r.node_id) });
+  const jt = jobTitleAnalysis(recs, s);
+  const idsWithTitles = (ts) => recs.filter((r) => ts.includes(r.job_title) && (r.is_active || r.is_vacant)).map((r) => r.node_id);
+  for (const v of jt.variants) { const ts = v.variants.split(" | ");
+    F({ type: "DUPLICATE_POSITION", severity: "Attention", entity_type: "Job Title", entity_id: v.normalized_title, entity_name: v.variants,
+      department: v.departments, description: "مسمى وظيفي مكرر بصيغ كتابة مختلفة (Duplicate Job Title).",
+      evidence: `الصيغ: ${v.variants}. عدد الوظائف = ${v.positions}. الإدارات: ${v.departments}.`,
+      recommended: "توحيد المسمى في دليل الوظائف (Job Catalogue).",
+      rule: "job titles identical after normalising case / spacing / punctuation", metric: "Variants", value: ts.length, related: idsWithTitles(ts) }); }
+  for (const p of jt.similar)
+    F({ type: "DUPLICATE_POSITION", severity: "Informational", entity_type: "Job Title", entity_id: `${p.title_a} ~ ${p.title_b}`,
+      entity_name: `${p.title_a} ~ ${p.title_b}`, department: [...new Set([...p.departments_a.split(", "), ...p.departments_b.split(", ")])].filter(Boolean).sort().join(", "),
+      description: "مسميات وظيفية متشابهة نصيًا (Similar Job Titles) قد تشير إلى تداخل أدوار.",
+      evidence: `'${p.title_a}' (${p.positions_a} وظيفة؛ ${p.departments_a}) و'${p.title_b}' (${p.positions_b} وظيفة؛ ${p.departments_b}). درجة التشابه = ${p.similarity.toFixed(2)}.`,
+      recommended: "مقارنة الوصف الوظيفي للمسميين لتحديد ما إذا كانا دورًا واحدًا أم دورين مختلفين.",
+      rule: `text similarity >= ${s.similarity}`, metric: "Similarity", value: p.similarity, threshold: s.similarity, related: idsWithTitles([p.title_a, p.title_b]) });
+  // vacancies
+  for (const r of recs.filter((x) => x.is_vacant && !x.is_dup)) {
+    const has = r.direct + r.vacDirect, managerial = r.job_level != null && r.job_level <= 4;
+    F({ type: "VACANT_POSITION", severity: managerial || has ? "Attention" : "Informational", entity_type: "Position", entity_id: r.position_id || r.node_id,
+      entity_name: r.job_title || "(no title)", department: r.department,
+      description: `وظيفة شاغرة (Position Status = Vacant): ${r.job_title}.`,
+      evidence: `Position ID = ${r.position_id}، Job Level = ${lvl(r.job_level)}، تتبع المدير ${r.manager_id || "—"}. وظائف تابعة لهذه الوظيفة = ${has}.`,
+      recommended: "التحقق من حالة التوظيف لهذه الوظيفة ومدة شغورها، وأثرها على الفريق." + (managerial ? " الوظيفة ذات مستوى إشرافي." : ""),
+      rule: "position_status == 'Vacant'", metric: "Position Status", value: "Vacant", related: [r.node_id] });
+  }
+  for (const r of recs.filter((x) => x.is_active && x.direct === 0 && x.vacDirect > 0))
+    F({ type: "VACANT_POSITION", severity: "Attention", entity_type: "Manager", entity_id: r.node_id, entity_name: nameOf(r), department: r.department,
+      description: `مدير بدون موظفين نشطين: جميع الوظائف التابعة له (${r.vacDirect}) شاغرة.`,
+      evidence: `Direct Reports النشطون = 0، الوظائف الشاغرة التابعة = ${r.vacDirect}، Job Level = ${lvl(r.job_level)}.`,
+      recommended: "مراجعة خطة شغل الفريق أو ما إذا كان الفريق قد نُقل/أُعيد تنظيمه.",
+      rule: "active employee with 0 active and >= 1 vacant direct positions", metric: "Vacant direct positions", value: r.vacDirect,
+      related: [r.node_id, ...directIds(model, r.node_id, true)] });
+
+  const tRank = Object.fromEntries(FINDING_TYPES.map((t, i) => [t, i]));
+  out.sort((a, b) => SEVERITIES.indexOf(a.severity) - SEVERITIES.indexOf(b.severity) || tRank[a.type] - tRank[b.type]
+    || String(a.department).localeCompare(String(b.department)) || String(a.entity_id).localeCompare(String(b.entity_id)));
+  out.forEach((f, i) => { f.finding_id = "F-" + String(i + 1).padStart(4, "0"); });
+  return out;
+}
+
+/* ===================================================================================
+   Data Quality
+   =================================================================================== */
+const blank = (k) => (r) => r[k] === "" || r[k] == null;
+function dqChecks(model) {
+  const ceo = model.ceo;
+  const lvlOf = new Map(model.recs.map((r) => [r.node_id, r.job_level]));
+  const nameOfId = new Map(model.recs.map((r) => [r.node_id, r.employee_name]));
+  const deptDiv = new Map();
+  model.recs.forEach((r) => { if (r.department && r.division) { if (!deptDiv.has(r.department)) deptDiv.set(r.department, new Set()); deptDiv.get(r.department).add(r.division); } });
+  const idCount = new Map(), posCount = new Map();
+  model.recs.forEach((r) => { if (r.employee_id) idCount.set(r.employee_id, (idCount.get(r.employee_id) || 0) + 1);
+    if (r.position_id) posCount.set(r.position_id, (posCount.get(r.position_id) || 0) + 1); });
+  const bands = new Map();
+  for (const [l, grp] of groupBy(model.recs.filter((r) => isNum(r.salary) && r.job_level != null), (r) => r.job_level)) {
+    const sal = grp.map((r) => r.salary), q1 = quantile(sal, .25), q3 = quantile(sal, .75), iqr = q3 - q1;
+    bands.set(l, [q1 - 1.5 * iqr, q3 + 1.5 * iqr]);
+  }
+  const filled = (r) => !r.is_vacant, positions = (r) => !r.is_dup, all = () => true;
+  const today = new Date().toISOString().slice(0, 10);
+  const C = (id, dim, name, field, rule, scope, fails) => ({ id, dim, name, field, rule, scope, fails });
+  return [
+    C("C01", "Completeness", "Employee ID Completeness", "employee_id", "Employee ID populated for filled positions", filled, blank("employee_id")),
+    C("C02", "Completeness", "Employee Name Completeness", "employee_name", "Name populated for filled positions", filled, blank("employee_name")),
+    C("C03", "Completeness", "Manager ID Completeness", "manager_id", "Manager ID populated for everyone except the CEO",
+      (r) => !r.is_vacant && r.node_id !== ceo && r.employment_status !== "Terminated", blank("manager_id")),
+    C("C04", "Completeness", "Job Title Completeness", "job_title", "Job title populated", positions, blank("job_title")),
+    C("C05", "Completeness", "Department Completeness", "department", "Department populated", positions, blank("department")),
+    C("C06", "Completeness", "Division Completeness", "division", "Division populated", positions, blank("division")),
+    C("C07", "Completeness", "Business Unit Completeness", "business_unit", "Business unit populated", positions, blank("business_unit")),
+    C("C08", "Completeness", "Job Level Completeness", "job_level", "Job level populated", positions, (r) => r.job_level == null),
+    C("C09", "Completeness", "Salary Completeness", "salary", "Salary populated for filled positions", filled, (r) => !isNum(r.salary)),
+    C("C10", "Completeness", "Position ID Completeness", "position_id", "Position ID populated", all, blank("position_id")),
+    C("C11", "Completeness", "Hire Date Completeness", "hire_date", "Hire date populated for filled positions", filled, blank("hire_date")),
+    C("U01", "Uniqueness", "Employee ID Uniqueness", "employee_id", "Each Employee ID appears once", (r) => !r.is_vacant && r.employee_id, (r) => idCount.get(r.employee_id) > 1),
+    C("U02", "Uniqueness", "Position ID Uniqueness", "position_id", "Each Position ID appears once", (r) => r.position_id, (r) => posCount.get(r.position_id) > 1),
+    C("V01", "Validity", "Salary Validity", "salary", "Salary is a positive number", (r) => !r.is_vacant && isNum(r.salary), (r) => r.salary <= 0),
+    C("V02", "Validity", "Job Level Validity", "job_level", "Job level is an integer 0-6", (r) => r.job_level != null, (r) => !(r.job_level >= 0 && r.job_level <= 6) || !Number.isInteger(r.job_level)),
+    C("V03", "Validity", "Employment Status Validity", "employment_status", "One of Active, On Leave, Terminated", filled, (r) => !["Active", "On Leave", "Terminated"].includes(r.employment_status)),
+    C("V04", "Validity", "Position Status Validity", "position_status", "One of Filled, Vacant", all, (r) => !["Filled", "Vacant"].includes(r.position_status)),
+    C("V05", "Validity", "Employment Type Validity", "employment_type", "One of Full-Time, Part-Time, Contractor", (r) => !r.is_vacant && r.employment_type, (r) => !["Full-Time", "Part-Time", "Contractor"].includes(r.employment_type)),
+    C("V06", "Validity", "Work Arrangement Validity", "work_arrangement", "One of On-site, Hybrid, Remote", (r) => !r.is_vacant && r.work_arrangement, (r) => !["On-site", "Hybrid", "Remote"].includes(r.work_arrangement)),
+    C("V07", "Validity", "Age Validity", "age", "Age between 16 and 80", (r) => isNum(r.age), (r) => r.age < 16 || r.age > 80),
+    C("V08", "Validity", "Hire Date Validity", "hire_date", "Hire date is not in the future", (r) => !!r.hire_date, (r) => r.hire_date > today),
+    C("V09", "Validity", "Performance Rating Validity", "performance_rating", "Rating between 1 and 5", (r) => isNum(r.performance_rating), (r) => r.performance_rating < 1 || r.performance_rating > 5),
+    C("S01", "Consistency", "Terminated Employee / Position Status", "position_status", "Terminated employees should not hold a 'Filled' position", (r) => r.employment_status === "Terminated", (r) => r.position_status === "Filled"),
+    C("S02", "Consistency", "Manager Job Level Seniority", "job_level", "Manager's job level is equal or more senior than the employee's",
+      (r) => r.is_active && r.manager_id, (r) => { const m = lvlOf.get(r.manager_id); return m != null && r.job_level != null && m > r.job_level; }),
+    C("S03", "Consistency", "Manager-level Role Without Reports", "job_level", "Job levels 0-5 are expected to have at least one active direct report",
+      (r) => r.is_active && r.job_level != null && r.job_level <= 5, (r) => r.direct === 0),
+    C("S04", "Consistency", "Department → Division Mapping", "division", "Each department belongs to exactly one division", positions, (r) => (deptDiv.get(r.department)?.size || 0) > 1),
+    C("S05", "Consistency", "Manager Name Matches Manager ID", "manager_name", "Recorded manager name matches the manager's record",
+      (r) => r.manager_id && r.manager_name, (r) => { const a = nameOfId.get(r.manager_id); return a && r.manager_name !== "(Vacant)" && a.toLowerCase() !== r.manager_name.toLowerCase(); }),
+    C("S06", "Consistency", "Vacant Position Without Employee Data", "employee_name", "Vacant positions carry no employee name", (r) => r.is_vacant, (r) => !!r.employee_name),
+    C("S07", "Consistency", "Salary Within Job Level Band", "salary", "Salary within 1.5×IQR of its job level",
+      (r) => r.is_active && isNum(r.salary), (r) => { const b = bands.get(r.job_level); return b && (r.salary < b[0] || r.salary > b[1]); }),
+    C("R01", "Referential Integrity", "Manager Reference Validity", "manager_id", "Manager ID refers to an existing record", (r) => r.manager_id && (r.is_active || r.is_vacant), (r) => r.status === RS.INVALID),
+    C("R02", "Referential Integrity", "Manager Is Active", "manager_id", "Manager record is Active / On Leave (or a vacant position)", (r) => r.is_active && r.manager_id, (r) => r.status === RS.TERMINATED),
+    C("R03", "Referential Integrity", "No Circular Reporting", "manager_id", "Reporting chain does not loop", (r) => r.is_active, (r) => r.status === RS.CIRCULAR),
+    C("R04", "Referential Integrity", "Reaches the CEO", "manager_id", "Reporting chain reaches the top of the hierarchy", (r) => r.is_active, (r) => r.depth == null),
+    C("R05", "Referential Integrity", "Single Top of Hierarchy", "manager_id", "Only one active employee without a manager", (r) => r.is_active && !r.manager_id, (r) => r.node_id !== ceo),
+  ];
+}
+function runChecks(model) {
+  return dqChecks(model).map((c) => {
+    const scope = model.recs.filter((r) => c.scope(r)), failing = scope.filter((r) => c.fails(r));
+    const score = scope.length ? (scope.length - failing.length) / scope.length : 1;
+    return { check_id: c.id, dimension: c.dim, check: c.name, field: c.field, rule: c.rule, records_checked: scope.length,
+      failed: failing.length, score, status: !failing.length ? "Pass" : score >= 0.98 ? "Warning" : "Fail", failing };
+  });
+}
+function dimensionScores(checks) {
+  return [...groupBy(checks, (c) => c.dimension)].map(([dimension, cs]) => {
+    const rec = sum(cs.map((c) => c.records_checked)), fail = sum(cs.map((c) => c.failed));
+    return { dimension, score: rec ? (rec - fail) / rec : 1, failed: fail, records: rec };
+  });
+}
+
+/* ===================================================================================
+   What-If Simulator (works on copies; source data is never modified)
+   =================================================================================== */
+class SimError extends Error {}
+const cloneRecs = (recs) => recs.map((r) => ({ ...r }));
+function findRec(recs, id) { const r = recs.find((x) => x.node_id === id && !x.is_dup); if (!r) throw new SimError(`الرقم ${id} غير موجود في البيانات.`); return r; }
+function setManager(recs, rows, mid) { const m = recs.find((r) => r.node_id === mid); rows.forEach((r) => { r.manager_id = mid; r.manager_name = m ? m.employee_name : ""; }); }
+const childRows = (recs, id) => recs.filter((r) => r.manager_id === id && r.node_id !== id && (r.is_active || r.is_vacant));
+
+const ACTIONS = {
+  merge_departments(recs, model, a) {
+    const depts = (a.departments || []).filter(Boolean);
+    if (depts.length < 2) throw new SimError("اختر إدارتين على الأقل للدمج.");
+    const name = (a.new_name || depts.join(" & ")).trim();
+    const heads = departmentHeads(model), primary = depts[0];
+    const ref = recs.find((r) => r.department === primary) || {};
+    let n = 0;
+    recs.forEach((r) => { if (depts.includes(r.department)) { r.department = name; r.division = ref.division; r.business_unit = ref.business_unit; n++; } });
+    const log = [`دمج ${depts.join(" + ")} → ${name} (${n} سجل).`];
+    if (a.consolidate_heads) {
+      const ph = heads[primary]; if (!ph) throw new SimError("تعذر تحديد رئيس الإدارة الأساسية.");
+      for (const d of depts) { const h = heads[d]; if (!h || h === ph) continue;
+        const rows = childRows(recs, h); setManager(recs, rows, ph);
+        recs.splice(recs.indexOf(findRec(recs, h)), 1);
+        log.push(`توحيد القيادة: ${rows.length} سجل كان يتبع ${h} أصبح يتبع ${ph}، وتم حذف وظيفة رئيس الإدارة ${h}.`); }
+    }
+    return log;
+  },
+  remove_layer(recs, model, a) {
+    const targets = new Set(model.recs.filter((r) => r.isMgr && r.job_level === a.job_level && r.node_id !== model.ceo
+      && (!a.department || r.department === a.department)).map((r) => r.node_id));
+    if (!targets.size) throw new SimError("لا يوجد مديرون في الطبقة/الإدارة المحددة.");
+    const np = new Map();
+    for (const t of targets) { const ch = chainUp(model, t).slice(1); np.set(t, ch.find((c) => !targets.has(c)) ?? findRec(recs, t).manager_id); }
+    let moved = 0;
+    for (const t of targets) { const rows = childRows(recs, t).filter((r) => !targets.has(r.node_id)); setManager(recs, rows, np.get(t)); moved += rows.length; }
+    for (let i = recs.length - 1; i >= 0; i--) if (targets.has(recs[i].node_id) && !recs[i].is_dup) recs.splice(i, 1);
+    return [`إزالة الطبقة الإدارية Job Level ${a.job_level}${a.department ? " في إدارة " + a.department : ""}: حذف ${targets.size} وظيفة إشرافية ونقل ${moved} سجل إلى المدير الأعلى التالي.`];
+  },
+  move_employee(recs, model, a) {
+    if (a.employee_id === a.new_manager_id) throw new SimError("لا يمكن أن يكون الموظف مديرًا لنفسه.");
+    const e = findRec(recs, a.employee_id), m = findRec(recs, a.new_manager_id);
+    if (!(m.is_active || m.is_vacant)) throw new SimError("المدير الجديد ليس موظفًا نشطًا.");
+    if (subtreeIds(model, a.employee_id, false, true).includes(a.new_manager_id))
+      throw new SimError("المدير الجديد يتبع هذا الموظف (مباشرة أو غير مباشرة)؛ النقل سينشئ علاقة دائرية.");
+    const old = e.manager_id; setManager(recs, [e], m.node_id);
+    let msg = `نقل ${e.node_id} من المدير ${old || "—"} إلى المدير ${m.node_id}`;
+    if (a.move_department !== false) { e.department = m.department; e.division = m.division; e.business_unit = m.business_unit; msg += ` (والإدارة إلى ${m.department})`; }
+    return [msg + "."];
+  },
+  remove_manager(recs, model, a) {
+    const t = findRec(recs, a.manager_id);
+    if (a.manager_id === model.ceo) throw new SimError("لا يمكن حذف الـCEO في هذا السيناريو.");
+    let rows = childRows(recs, t.node_id); const parent = t.manager_id;
+    const directs = new Set(rows.map((r) => r.node_id)); const log = [];
+    let target = a.reassign_to || "manager_of_removed";
+    if (target === "manager_of_removed") { target = parent; if (!target) throw new SimError("المدير المحذوف ليس له مدير أعلى؛ اختر مستلمًا آخر."); }
+    else if (target === "department_head") { target = departmentHeads(model)[t.department];
+      if (!target || target === t.node_id) { target = parent; log.push("المدير المحذوف هو رئيس الإدارة؛ تم تحويل الفريق إلى مديره الأعلى."); } }
+    else { findRec(recs, target);
+      if (subtreeIds(model, t.node_id, false, true).includes(target) && !directs.has(target))
+        throw new SimError("المستلم يقع في مستوى أدنى داخل فريق المدير المحذوف؛ اختر مديرًا من خارج الفريق أو أحد الموظفين المباشرين (ترقية)."); }
+    if (directs.has(target)) { const p = findRec(recs, target); setManager(recs, [p], parent); rows = rows.filter((r) => r !== p);
+      log.push(`ترقية ${target} ليحل محل ${t.node_id} ويتبع ${parent || "—"}.`); }
+    setManager(recs, rows, target); recs.splice(recs.indexOf(t), 1);
+    log.push(`حذف المدير ${t.node_id} ونقل ${rows.length} سجل إلى ${target}.`);
+    return log;
+  },
+};
+function applyScenario(baseModel, actions) {
+  let recs = cloneRecs(baseModel.recs.map(stripDerived)), model = baseModel; const log = [];
+  actions.forEach((a, i) => {
+    const fn = ACTIONS[a.type]; if (!fn) throw new SimError("نوع إجراء غير معروف: " + a.type);
+    log.push(...fn(recs, model, a).map((m) => `[${i + 1}] ${m}`));
+    model = buildModel(recs); recs = cloneRecs(model.recs.map(stripDerived));
+  });
+  return { model, log };
+}
+function stripDerived(r) { const { status, depth, direct, vacDirect, total, isMgr, ...rest } = r; return rest; }
+
+function orgSummary(model, s) {
+  const act = model.recs.filter((r) => r.is_active), mg = act.filter((r) => r.isMgr).map((r) => r.direct);
+  const d = act.filter((r) => r.node_id !== model.ceo && r.depth != null).map((r) => r.depth);
+  return { "Employees": act.length, "Managers": mg.length, "Management Ratio": act.length ? mg.length / act.length : NaN,
+    "Layers": layerCount(model.recs), "Max Depth": d.length ? Math.max(...d) : NaN, "Avg Depth": mean(d), "Avg Span": mean(mg),
+    "Median Span": median(mg), "Low Span Managers": mg.filter((n) => n <= s.low).length, "High Span Managers": mg.filter((n) => n > s.high).length,
+    "Invalid Reporting": act.filter((r) => INVALID_RS.has(r.status)).length,
+    "Vacancies": model.recs.filter((r) => r.is_vacant && !r.is_dup).length,
+    "Departments": new Set(act.map((r) => r.department).filter(Boolean)).size };
+}
+const fmtMetric = (k, v) => (!isNum(v) ? "—" : k === "Management Ratio" ? pct(v) : Number.isInteger(v) ? v.toLocaleString("en-US") : v.toFixed(2));
+function compare(before, after, s) {
+  const sb = orgSummary(before, s), sa = orgSummary(after, s);
+  const summary = Object.keys(sb).map((k) => ({ metric: k, before: fmtMetric(k, sb[k]), after: fmtMetric(k, sa[k]) }));
+  const B = new Map(before.recs.filter((r) => r.is_active).map((r) => [r.node_id, r]));
+  const A = new Map(after.recs.filter((r) => r.is_active).map((r) => [r.node_id, r]));
+  const ids = [...new Set([...[...B.values()].filter((r) => r.isMgr).map((r) => r.node_id), ...[...A.values()].filter((r) => r.isMgr).map((r) => r.node_id)])].sort();
+  const spans = ids.map((id) => { const b = B.get(id), a = A.get(id), x = b || a;
+    return { node_id: id, employee_name: x.employee_name, job_title: x.job_title, department: x.department,
+      span_before: b ? b.direct : null, span_after: a ? a.direct : null, change: !a ? "Removed" : !b ? "New" : "Changed" }; })
+    .filter((r) => r.span_before !== r.span_after);
+  const depth = [...B.keys()].filter((id) => A.has(id) && B.get(id).depth !== A.get(id).depth).map((id) =>
+    ({ node_id: id, employee_name: B.get(id).employee_name, department: A.get(id).department, depth_before: B.get(id).depth, depth_after: A.get(id).depth }));
+  const ub = new Map(unitMetrics(before.recs, "department", s).map((u) => [u.department, u]));
+  const ua = new Map(unitMetrics(after.recs, "department", s).map((u) => [u.department, u]));
+  const cols = ["headcount", "managers", "management_ratio", "avg_span", "layers", "vacancies"];
+  const depts = [...new Set([...ub.keys(), ...ua.keys()])].sort();
+  const deptChanges = depts.map((d) => { const row = { department: d }; const b = ub.get(d) || {}, a = ua.get(d) || {};
+    cols.forEach((c) => { row[c + "_before"] = b[c] ?? null; row[c + "_after"] = a[c] ?? null; }); return row; })
+    .filter((row) => cols.some((c) => fmtNum4(row[c + "_before"]) !== fmtNum4(row[c + "_after"])));
+  const lines = [];
+  for (const k of Object.keys(sb)) if (fmtMetric(k, sb[k]) !== fmtMetric(k, sa[k])) lines.push(`${k}: ${fmtMetric(k, sb[k])} → ${fmtMetric(k, sa[k])}`);
+  for (const r of spans.slice(0, 25)) lines.push(`Manager ${r.node_id} (${r.job_title}): Direct Reports ${r.span_before ?? "—"} → ${r.span_after ?? "removed"}`);
+  for (const r of deptChanges.slice(0, 25)) {
+    const parts = [["headcount", "Headcount"], ["managers", "Managers"], ["layers", "Layers"], ["management_ratio", "Management Ratio"]]
+      .filter(([c]) => fmtNum4(r[c + "_before"]) !== fmtNum4(r[c + "_after"]))
+      .map(([c, l]) => `${l} ${c === "management_ratio" ? pct(r[c + "_before"]) : r[c + "_before"] ?? "—"} → ${c === "management_ratio" ? pct(r[c + "_after"]) : r[c + "_after"] ?? "—"}`);
+    if (parts.length) lines.push(`Department ${r.department}: ${parts.join("; ")}`);
+  }
+  if (depth.length) lines.push(`Organizational Depth تغير لـ ${depth.length} موظف/موظفين.`);
+  return { summary, spans, depth, deptChanges, lines, sb, sa };
+}
+const fmtNum4 = (v) => (isNum(v) ? v.toFixed(4) : "—");
+
+/* ===================================================================================
+   X-Ray answers (dashboard)
+   =================================================================================== */
+function keyQuestions(model, recs, findings, s) {
+  const act = recs.filter((r) => r.is_active), mg = act.filter((r) => r.isMgr);
+  const units = unitMetrics(recs, "department", s).filter((u) => u.headcount > 0);
+  const d = act.map((r) => r.depth).filter(isNum);
+  const out = []; const q = (question, answer, evidence, page) => out.push({ question, answer, evidence, page });
+  q("كم عدد الطبقات الإدارية؟", d.length ? `${layerCount(recs)} طبقات هيكلية` : "لا يمكن الحساب (لا يوجد CEO)",
+    d.length ? `العمق من ${Math.min(...d)} إلى ${Math.max(...d)} علاقة إدارية حتى الـCEO.` : "", "layers");
+  q("كم عدد المديرين؟", `${mg.length.toLocaleString("en-US")} مدير`, `Management Ratio = ${pct(act.length ? mg.length / act.length : NaN)} من ${act.length.toLocaleString("en-US")} موظف نشط.`, "span");
+  if (mg.length) { const sp = mg.map((r) => r.direct);
+    q("كم عدد الموظفين تحت كل مدير؟", `الوسيط ${g(median(sp))} والمتوسط ${mean(sp).toFixed(1)}`, `النطاق من ${Math.min(...sp)} إلى ${Math.max(...sp)} موظف مباشر.`, "span"); }
+  const low = [...units].sort((a, b) => b.low_span_managers - a.low_span_managers).filter((u) => u.low_span_managers).slice(0, 3);
+  q("أين توجد الإدارات ذات Span of Control منخفض؟", low.map((u) => `${u.department} (${u.low_span_managers})`).join("، ") || "لا توجد", `عدد المديرين الذين لديهم ≤ ${s.low} موظفين مباشرين.`, "departments");
+  const high = [...units].sort((a, b) => b.high_span_managers - a.high_span_managers).filter((u) => u.high_span_managers).slice(0, 3);
+  q("أين توجد الإدارات ذات Span of Control مرتفع؟", high.map((u) => `${u.department} (${u.high_span_managers})`).join("، ") || "لا توجد", `عدد المديرين الذين لديهم > ${s.high} موظفًا مباشرًا.`, "departments");
+  if (d.length) { const deep = [...act].filter((r) => r.depth != null).sort((a, b) => b.depth - a.depth)[0];
+    q("ما أطول سلسلة إدارية؟", `${deep.depth} علاقات إدارية`, `مثال: ${deep.node_id} – ${deep.job_title} (${deep.department}).`, "layers"); }
+  const cnt = (st) => act.filter((r) => r.status === st).length;
+  q("هل توجد موظفون بدون مدير؟", `${cnt(RS.MISSING)} بدون Manager ID، ${cnt(RS.INVALID)} بمدير غير موجود`, `بالإضافة إلى ${cnt(RS.DISCONNECTED)} موظف لا تصل سلسلتهم إلى الـCEO بسبب انقطاع أعلى.`, "findings");
+  q("هل توجد علاقات إدارية تشير إلى مدير منتهي الخدمة؟", `${cnt(RS.TERMINATED)} موظف يتبعون ${new Set(act.filter((r) => r.status === RS.TERMINATED).map((r) => r.manager_id)).size} مدير/مديرين منتهي الخدمة`, "Manager ID يشير إلى سجل حالته Terminated.", "findings");
+  q("هل توجد حلقات إدارية Circular Reporting؟", `${model.cycles.length} حلقة (${cnt(RS.CIRCULAR)} موظف)`, model.cycles.slice(0, 3).map((c) => c.concat(c[0]).join(" → ")).join(" | "), "findings");
+  const small = units.filter((u) => u.headcount <= s.small);
+  q("هل توجد إدارات صغيرة جدًا؟", small.map((u) => `${u.department} (${u.headcount})`).join("، ") || "لا توجد", `Headcount ≤ ${s.small}.`, "departments");
+  const hm = units.filter((u) => u.headcount > s.small && u.management_ratio > s.ratio).sort((a, b) => b.management_ratio - a.management_ratio);
+  q("هل نسبة المديرين مرتفعة في بعض الإدارات؟", hm.map((u) => `${u.department} (${pct(u.management_ratio)})`).join("، ") || "لا توجد", `Management Ratio > ${pct(s.ratio, 0)}.`, "departments");
+  const dup = findings.filter((f) => f.type === "DUPLICATE_POSITION");
+  q("هل توجد وظائف متكررة أو متشابهة؟", dup.length ? `${dup.length} ملاحظة` : "لا توجد", "Position IDs مكررة، صيغ كتابة مختلفة لنفس المسمى، ومسميات متشابهة نصيًا.", "findings");
+  const vac = recs.filter((r) => r.is_vacant && !r.is_dup);
+  const top = [...groupBy(vac, (r) => label(r.department))].sort((a, b) => b[1].length - a[1].length).slice(0, 3);
+  q("أين توجد شواغر؟", `${vac.length} وظيفة شاغرة`, top.map(([k, v]) => `${k} (${v.length})`).join("، "), "departments");
+  return out;
+}
+
+const XR = { COLUMNS, LABELS, LEVEL_NAMES, SEVERITIES, FINDING_TYPES, TYPE_AR, RS, INVALID_RS, DEFAULT_SETTINGS, UNASSIGNED,
+  isNum, sum, mean, median, quantile, pct, fmt, g, groupBy, label, generateOrg, normalize, validateImport, mapColumns, buildModel,
+  chainUp, directIds, subtreeIds, depthStats, layerCount, longestChains, departmentHeads, spanCat, spanStats, unitMetrics,
+  layerMetrics, titleSimilarity, jobTitleAnalysis, detectFindings, runChecks, dimensionScores, applyScenario, compare,
+  orgSummary, keyQuestions, SimError, stripDerived };
+if (typeof module !== "undefined") module.exports = XR;
+
+</script>
+<script>
+/* ===================================================================================
+   Organizational X-Ray — interface (depends on engine.js -> XR)
+   =================================================================================== */
+"use strict";
+const X = XR;
+const $ = (sel, root = document) => root.querySelector(sel);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = (v, d = 0) => (X.isNum(v) ? v.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }) : "—");
+const nfa = (v) => (X.isNum(v) ? (Number.isInteger(v) ? v.toLocaleString("en-US") : v.toLocaleString("en-US", { maximumFractionDigits: 2 })) : "—");
+
+/* ---------------------------------------------------------------- state */
+const S = { raw: [], source: "", manifest: null, model: null, findings: [], dq: null, settings: { ...X.DEFAULT_SETTINGS },
+  filters: {}, scenario: [], sim: null, simKey: "", viewKey: "", view: null, sel: {} };
+try { const saved = JSON.parse(localStorage.getItem("xr-settings") || "null"); if (saved) Object.assign(S.settings, saved); } catch (e) { /* storage unavailable */ }
+
+function setData(raw, source, manifest = null) {
+  S.raw = raw; S.source = source; S.manifest = manifest;
+  S.model = X.buildModel(X.normalize(raw));
+  S.filters = {}; S.scenario = []; S.sim = null; S.sel = {};
+  recompute();
+}
+function recompute() { S.findings = X.detectFindings(S.model, S.settings); S.dq = null; S.viewKey = ""; S.sim = null; }
+const dq = () => (S.dq || (S.dq = X.runChecks(S.model)));
+
+const FILTERS = [["business_unit", "Business Unit"], ["division", "Division"], ["department", "Department"], ["location", "Location"],
+  ["job_level", "Job Level"], ["employment_status", "Employment Status"], ["employment_type", "Employment Type"]];
+function view() {
+  const key = JSON.stringify(S.filters);
+  if (S.viewKey === key && S.view) return S.view;
+  let recs = S.model.recs; const parts = [];
+  for (const [k, lab] of FILTERS) { const v = S.filters[k]; if (v === undefined || v === "") continue;
+    recs = recs.filter((r) => String(r[k] ?? "") === String(v)); parts.push(`${lab}: ${v}`); }
+  if (S.filters.manager) { const ids = new Set(X.subtreeIds(S.model, S.filters.manager, true, true)); recs = recs.filter((r) => ids.has(r.node_id)); parts.push(`Manager: ${S.filters.manager}`); }
+  let findings = S.findings;
+  if (parts.length) { const ids = new Set(recs.map((r) => r.node_id)), depts = new Set(recs.map((r) => r.department));
+    findings = findings.filter((f) => f.related.some((i) => ids.has(i)) || (f.entity_type === "Department" && depts.has(f.department))); }
+  S.view = { recs, findings, filtered: parts.length > 0, note: parts.join(" · ") }; S.viewKey = key;
+  return S.view;
+}
+
+/* ---------------------------------------------------------------- downloads */
+function download(name, content, mime) {
+  try { const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500); } catch (e) { toast("تعذر التحميل في هذه البيئة. استخدم «نسخ CSV»."); }
+}
+const csvCell = (v) => { const s = Array.isArray(v) ? v.join(", ") : v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+const toCSV = (rows, cols) => "﻿" + [cols.map((c) => csvCell(c.label)).join(","), ...rows.map((r) => cols.map((c) => csvCell(r[c.k])).join(","))].join("\n");
+function toast(msg) { const t = document.createElement("div"); t.className = "tip"; t.style.cssText = "left:50%;bottom:24px;transform:translateX(-50%)";
+  t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+
+/* ---------------------------------------------------------------- table component */
+let tableSeq = 0;
+function table(rows, cols, { onClick = null, height = null, file = "table", max = 1500, selKey = null } = {}) {
+  const id = "t" + ++tableSeq;
+  after(() => mountTable(id, rows, cols, { onClick, file, max, selKey }));
+  return `<div class="tablewrap" id="${id}" ${height ? `style="max-height:${height}px"` : ""}></div>
+    <div class="tablefoot"><span id="${id}-n"></span><span><button class="btn sm" id="${id}-csv">⬇ CSV</button>
+    <button class="btn sm" id="${id}-copy">نسخ CSV</button></span></div>`;
+}
+function cellHTML(r, c) {
+  const v = r[c.k];
+  switch (c.t) {
+    case "n": return `<td class="n">${nfa(v)}</td>`;
+    case "money": return `<td class="n">${nf(v)}</td>`;
+    case "pct": return `<td class="n">${X.pct(v)}</td>`;
+    case "sev": return `<td><span class="sev ${esc(v)}">${esc(v)}</span></td>`;
+    case "wrap": return `<td class="wrap">${esc(v)}</td>`;
+    case "mono": return `<td class="mono">${esc(v)}</td>`;
+    case "status": return `<td><span class="pill ${v === "Pass" ? "ok" : v === "Fail" ? "bad" : ""}">${esc(v)}</span></td>`;
+    default: return `<td>${esc(c.f ? c.f(v, r) : v)}</td>`;
+  }
+}
+function mountTable(id, rows, cols, { onClick, file, max, selKey }) {
+  const wrap = document.getElementById(id); if (!wrap) return;
+  let sortK = null, dir = 1, data = rows;
+  const draw = () => {
+    const shown = data.slice(0, max);
+    wrap.innerHTML = `<table><thead><tr>${cols.map((c) => `<th data-k="${c.k}" ${sortK === c.k ? `aria-sort="${dir > 0 ? "ascending" : "descending"}"` : ""}>${esc(c.label)}</th>`).join("")}</tr></thead>
+      <tbody>${shown.map((r, i) => `<tr data-i="${i}" class="${onClick ? "clickable" : ""} ${selKey && S.sel[selKey] === r[cols[0].k] ? "sel" : ""}">${cols.map((c) => cellHTML(r, c)).join("")}</tr>`).join("")}</tbody></table>`;
+    document.getElementById(id + "-n").textContent = data.length > max ? `${max.toLocaleString("en-US")} من ${data.length.toLocaleString("en-US")} صف معروض (التحميل يشمل الكل)` : `${data.length.toLocaleString("en-US")} صف`;
+    wrap.querySelectorAll("th").forEach((th) => th.addEventListener("click", () => {
+      const k = th.dataset.k; dir = sortK === k ? -dir : 1; sortK = k;
+      data = [...data].sort((a, b) => { const x = a[k], y = b[k];
+        if (x == null || x === "") return 1; if (y == null || y === "") return -1;
+        return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y), "en", { numeric: true })) * dir; });
+      draw(); }));
+    if (onClick) wrap.querySelectorAll("tbody tr").forEach((tr) => tr.addEventListener("click", () => onClick(shown[+tr.dataset.i])));
+  };
+  draw();
+  document.getElementById(id + "-csv").onclick = () => download(file + ".csv", toCSV(data, cols), "text/csv;charset=utf-8");
+  document.getElementById(id + "-copy").onclick = async () => { const txt = toCSV(data, cols).slice(1);
+    try { await navigator.clipboard.writeText(txt); toast("تم نسخ الجدول (CSV)."); } catch (e) { toast("تعذر النسخ في هذه البيئة."); } };
+}
+const C = (k, label, t, f) => ({ k, label: label || X.LABELS[k] || k, t, f });
+
+/* ---------------------------------------------------------------- charts (SVG) */
+const COL = { a: "var(--accent)", b: "var(--bar-2)", c: "var(--bar-3)", crit: "var(--crit)", sig: "var(--sig)", att: "var(--att)", info: "var(--info)" };
+const SEV_COL = { Critical: COL.crit, Significant: COL.sig, Attention: COL.att, Informational: COL.info };
+const tipAttr = (t) => `data-tip="${esc(t)}"`;
+const niceMax = (v) => { if (v <= 0) return 1; const p = 10 ** Math.floor(Math.log10(v)); const m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
+const ticks = (max, n = 5) => Array.from({ length: n + 1 }, (_, i) => (max / n) * i);
+const legend = (items) => `<div class="legend">${items.map(([n, c]) => `<span><i style="background:${c}"></i>${esc(n)}</span>`).join("")}</div>`;
+
+/** Horizontal bars. rows: [{label, values:[...], tip}] series: [[name,color]] ; stacked or grouped */
+function hbar(rows, series, { stacked = false, threshold = null, thresholdLabel = "", unit = "", width = 640, labelW = null } = {}) {
+  if (!rows.length) return `<p class="note">لا توجد بيانات.</p>`;
+  const lw = labelW ?? Math.min(190, Math.max(60, Math.max(...rows.map((r) => String(r.label).length)) * 6.6 + 10));
+  const bh = stacked || series.length === 1 ? 16 : 9, gap = 8, rowH = stacked || series.length === 1 ? bh + gap : bh * series.length + gap;
+  const H = rows.length * rowH + 34, W = width, pw = W - lw - 30;
+  const maxV = niceMax(Math.max(threshold || 0, ...rows.map((r) => (stacked ? X.sum(r.values) : Math.max(...r.values))))) || 1;
+  const x = (v) => lw + (v / maxV) * pw;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img">`;
+  for (const t of ticks(maxV, 4)) s += `<line class="grid" x1="${x(t)}" x2="${x(t)}" y1="0" y2="${H - 22}"/><text x="${x(t)}" y="${H - 8}" text-anchor="middle">${nfa(t)}${unit}</text>`;
+  rows.forEach((r, i) => {
+    const y0 = i * rowH + 4;
+    s += `<text x="${lw - 8}" y="${y0 + (rowH - gap) / 2 + 4}" text-anchor="end">${esc(String(r.label).slice(0, 30))}</text>`;
+    let acc = 0;
+    r.values.forEach((v, j) => {
+      const y = stacked || series.length === 1 ? y0 : y0 + j * bh, x0 = stacked ? x(acc) : lw, w = Math.max(0, x(v) - lw);
+      if (v > 0) s += `<rect x="${x0}" y="${y}" width="${w}" height="${bh - 1}" rx="2" fill="${series[j][1]}" ${tipAttr(r.tip ? r.tip(j) : `${r.label} · ${series[j][0]}: ${nfa(v)}${unit}`)}/>`;
+      acc += v;
+    });
+  });
+  if (threshold != null) s += `<line x1="${x(threshold)}" x2="${x(threshold)}" y1="0" y2="${H - 22}" stroke="var(--crit)" stroke-dasharray="4 3"/><text x="${x(threshold) + 4}" y="12" style="fill:var(--crit)">${esc(thresholdLabel)}</text>`;
+  return (series.length > 1 ? legend(series) : "") + `<div class="chart">${s}</svg></div>`;
+}
+/** Vertical histogram. bins: [{x, y, color, tip}] */
+function vbar(bins, { xLabel = "", yLabel = "", marks = [], width = 640, height = 260 } = {}) {
+  if (!bins.length) return `<p class="note">لا توجد بيانات.</p>`;
+  const L = 44, B = 40, W = width, H = height, pw = W - L - 12, ph = H - B - 14;
+  const xs = bins.map((b) => b.x), x0 = Math.min(...xs), x1 = Math.max(...xs), n = x1 - x0 + 1, bw = pw / n;
+  const maxV = niceMax(Math.max(...bins.map((b) => b.y)));
+  const X0 = (v) => L + (v - x0) * bw, Y = (v) => 14 + ph - (v / maxV) * ph;
+  let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img">`;
+  for (const t of ticks(maxV, 4)) s += `<line class="grid" x1="${L}" x2="${W - 12}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L - 6}" y="${Y(t) + 4}" text-anchor="end">${nfa(t)}</text>`;
+  const step = n > 40 ? 5 : n > 20 ? 2 : 1;
+  for (let v = x0; v <= x1; v++) if ((v - x0) % step === 0) s += `<text x="${X0(v) + bw / 2}" y="${H - B + 16}" text-anchor="middle">${v}</text>`;
+  for (const b of bins) s += `<rect x="${X0(b.x) + 1}" y="${Y(b.y)}" width="${Math.max(1, bw - 2)}" height="${Y(0) - Y(b.y)}" rx="2" fill="${b.color || COL.a}" ${tipAttr(b.tip)}/>`;
+  for (const m of marks) { const mx = X0(m.x) + (m.edge ? 0 : bw / 2);
+    s += `<line x1="${mx}" x2="${mx}" y1="10" y2="${Y(0)}" stroke="${m.color || "var(--muted)"}" stroke-dasharray="4 3"/><text x="${mx + 3}" y="${m.y || 12}" style="fill:${m.color || "var(--muted)"}">${esc(m.label)}</text>`; }
+  s += `<line class="axis" x1="${L}" x2="${W - 12}" y1="${Y(0)}" y2="${Y(0)}"/>`;
+  s += `<text x="${L + pw / 2}" y="${H - 4}" text-anchor="middle">${esc(xLabel)}</text><text transform="translate(11 ${14 + ph / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>`;
+  return `<div class="chart">${s}</svg></div>`;
+}
+function heatmap(rowsLab, colsLab, z, { width = 640 } = {}) {
+  if (!rowsLab.length) return `<p class="note">لا توجد بيانات.</p>`;
+  const L = 64, T = 22, cw = (width - L - 8) / colsLab.length, ch = 26, H = T + rowsLab.length * ch + 4;
+  const max = Math.max(1, ...z.flat());
+  let s = `<svg viewBox="0 0 ${width} ${H}" width="${width}" role="img">`;
+  colsLab.forEach((c, j) => { s += `<text x="${L + j * cw + cw / 2}" y="14" text-anchor="middle">${esc(c)}</text>`; });
+  rowsLab.forEach((r, i) => { s += `<text x="${L - 6}" y="${T + i * ch + ch / 2 + 4}" text-anchor="end">${esc(r)}</text>`;
+    colsLab.forEach((c, j) => { const v = z[i][j], a = v ? 0.12 + 0.88 * Math.sqrt(v / max) : 0;
+      s += `<rect x="${L + j * cw + 1}" y="${T + i * ch + 1}" width="${cw - 2}" height="${ch - 2}" rx="3" fill="${v ? "var(--accent)" : "var(--sunken)"}" fill-opacity="${v ? a.toFixed(2) : 1}" ${tipAttr(`${r} · ${c}: ${v} موظف`)}/>`;
+      if (v) s += `<text x="${L + j * cw + cw / 2}" y="${T + i * ch + ch / 2 + 4}" text-anchor="middle" style="fill:${a > .55 ? "var(--surface)" : "var(--ink)"}">${v}</text>`; }); });
+  return `<div class="chart">${s}</svg></div>`;
+}
+function scatter(pts, { xLabel = "", yLabel = "", width = 640, height = 300 } = {}) {
+  if (!pts.length) return `<p class="note">لا توجد بيانات.</p>`;
+  const L = 44, B = 36, pw = width - L - 16, ph = height - B - 12;
+  const lx = (v) => Math.log10(Math.max(1, v)), xmax = Math.max(...pts.map((p) => lx(p.x))) * 1.05 || 1, ymax = niceMax(Math.max(...pts.map((p) => p.y)));
+  const Xf = (v) => L + (lx(v) / xmax) * pw, Yf = (v) => 12 + ph - (v / ymax) * ph;
+  let s = `<svg viewBox="0 0 ${width} ${height}" width="${width}" role="img">`;
+  for (const t of ticks(ymax, 4)) s += `<line class="grid" x1="${L}" x2="${width - 16}" y1="${Yf(t)}" y2="${Yf(t)}"/><text x="${L - 6}" y="${Yf(t) + 4}" text-anchor="end">${nfa(t)}</text>`;
+  for (const t of [1, 10, 100, 1000, 10000]) if (lx(t) <= xmax) s += `<text x="${Xf(t)}" y="${height - B + 16}" text-anchor="middle">${t}</text>`;
+  for (const p of pts) s += `<circle cx="${Xf(p.x)}" cy="${Yf(p.y)}" r="6" fill="var(--accent)" fill-opacity=".8" stroke="var(--surface)" stroke-width="2" ${tipAttr(p.tip)}/><text x="${Xf(p.x)}" y="${Yf(p.y) - 9}" text-anchor="middle" style="font-size:9.5px">${esc(p.label.slice(0, 22))}</text>`;
+  s += `<text x="${L + pw / 2}" y="${height - 4}" text-anchor="middle">${esc(xLabel)}</text><text transform="translate(11 ${12 + ph / 2}) rotate(-90)" text-anchor="middle">${esc(yLabel)}</text>`;
+  return `<div class="chart">${s}</svg></div>`;
+}
+/** Treemap: Business Unit -> Department headcount (slice-and-dice). */
+function treemap(recs, width = 640, height = 300) {
+  const act = recs.filter((r) => r.is_active);
+  const bus = [...X.groupBy(act, (r) => X.label(r.business_unit))].sort((a, b) => b[1].length - a[1].length);
+  const pal = [COL.a, COL.b, COL.c, "var(--good)", COL.att];
+  let s = `<svg viewBox="0 0 ${width} ${height}" width="${width}" role="img">`, x = 0;
+  bus.forEach(([bu, rs], i) => {
+    const w = (rs.length / act.length) * width; let y = 0;
+    const depts = [...X.groupBy(rs, (r) => X.label(r.department))].sort((a, b) => b[1].length - a[1].length);
+    depts.forEach(([d, ds]) => { const h = (ds.length / rs.length) * (height - 18);
+      s += `<rect x="${x + 1}" y="${18 + y + 1}" width="${Math.max(0, w - 2)}" height="${Math.max(0, h - 2)}" fill="${pal[i % pal.length]}" fill-opacity="${0.35 + 0.5 * (ds.length / rs.length) ** .3}" ${tipAttr(`${bu} › ${d}: ${ds.length} موظف`)}/>`;
+      if (h > 13 && w > 60) s += `<text x="${x + 6}" y="${18 + y + 13}" style="font-size:10px;fill:var(--ink)">${esc(d.slice(0, Math.floor(w / 6.2)))} · ${ds.length}</text>`;
+      y += h; });
+    s += `<text x="${x + 4}" y="12" style="font-weight:600">${esc(bu.slice(0, Math.floor(w / 6.5)))}</text>`;
+    x += w;
+  });
+  return `<div class="chart">${s}</svg></div>`;
+}
+
+/* tooltip */
+const tipEl = document.createElement("div"); tipEl.className = "tip"; tipEl.hidden = true;
+document.addEventListener("mousemove", (e) => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { tipEl.hidden = true; return; }
+  tipEl.textContent = t.getAttribute("data-tip"); tipEl.hidden = false;
+  const x = Math.min(e.clientX + 14, innerWidth - tipEl.offsetWidth - 8), y = Math.min(e.clientY + 14, innerHeight - tipEl.offsetHeight - 8);
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
+});
+
+/* ---------------------------------------------------------------- page plumbing */
+let afterQ = [];
+const after = (fn) => afterQ.push(fn);
+const kpi = (k, v, h = "", cls = "") => `<div class="kpi ${cls}"><div class="k">${k}</div><div class="v">${v}</div>${h ? `<div class="h">${h}</div>` : ""}</div>`;
+const head = (ar, en, desc) => `<div class="page-head"><div><h1>${ar}<span class="en">${en}</span></h1>${desc ? `<p>${desc}</p>` : ""}</div></div>` +
+  (view().filtered && !["import", "settings", "simulator", "quality", "map", "explorer"].includes(current()) ? `<div class="filter-note">الفلاتر العامة مفعّلة — ${esc(view().note)}</div>` : "");
+const sevBadge = (s) => `<span class="sev ${s}">${s}</span>`;
+
+const PAGES = [
+  ["dashboard", "لوحة الملخص", "Dashboard", pageDashboard], ["layers", "الطبقات", "Layers", pageLayers],
+  ["span", "نطاق الإشراف", "Span of Control", pageSpan], ["departments", "الإدارات", "Departments", pageDepartments],
+  ["map", "الخريطة التنظيمية", "Organization Map", pageMap], ["explorer", "مستكشف الموظفين", "Employee Explorer", pageExplorer],
+  ["findings", "ملاحظات الأشعة", "X-Ray Findings", pageFindings], ["quality", "جودة البيانات", "Data Quality", pageQuality],
+  ["simulator", "محاكي ماذا لو", "What-If Simulator", pageSimulator], ["import", "استيراد البيانات", "Import Data", pageImport],
+  ["export", "التصدير", "Export", pageExport], ["settings", "الإعدادات", "Settings", pageSettings],
+];
+const current = () => { const h = location.hash.replace("#", ""); return PAGES.some((p) => p[0] === h) ? h : "dashboard"; };
+
+function render() {
+  const page = current();
+  document.querySelectorAll(".nav a").forEach((a) => a.setAttribute("aria-current", a.dataset.p === page ? "page" : "false"));
+  afterQ = []; tableSeq = 0;
+  const main = $("main");
+  try { main.innerHTML = PAGES.find((p) => p[0] === page)[3](); }
+  catch (e) { console.error(e); main.innerHTML = `<div class="err">حدث خطأ أثناء عرض الصفحة: ${esc(e.message)}</div>`; }
+  afterQ.forEach((f) => { try { f(); } catch (e) { console.error(e); } });
+}
+function renderRail() {
+  $(".nav").innerHTML = PAGES.map(([k, ar, en]) => `<a href="#${k}" data-p="${k}">${ar}<span class="en">${en}</span></a>`).join("");
+  const recs = S.model.recs.filter((r) => !r.is_dup);
+  const opts = (k) => [...new Set(recs.map((r) => r[k]).filter((v) => v !== "" && v != null))].sort((a, b) => (typeof a === "number" ? a - b : String(a).localeCompare(String(b))));
+  const mgrs = recs.filter((r) => r.isMgr).sort((a, b) => b.total - a.total).slice(0, 400);
+  $(".filters").innerHTML = FILTERS.map(([k, lab]) => `<label>${lab}<select data-f="${k}"><option value="">الكل</option>${opts(k).map((v) =>
+      `<option ${String(S.filters[k] ?? "") === String(v) ? "selected" : ""} value="${esc(v)}">${esc(k === "job_level" ? `${v} · ${X.LEVEL_NAMES[v] || ""}` : v)}</option>`).join("")}</select></label>`).join("") +
+    `<label>المدير (فريقه كاملًا)<select data-f="manager"><option value="">الكل</option>${mgrs.map((r) => `<option ${S.filters.manager === r.node_id ? "selected" : ""} value="${esc(r.node_id)}">${esc(`${r.node_id} · ${r.employee_name}`)}</option>`).join("")}</select></label>
+    <button class="btn sm" id="clear-f">مسح الفلاتر</button>`;
+  document.querySelectorAll("[data-f]").forEach((s) => s.addEventListener("change", () => { S.filters[s.dataset.f] = s.value; S.viewKey = ""; render(); }));
+  $("#clear-f").onclick = () => { S.filters = {}; S.viewKey = ""; renderRail(); render(); };
+  $("#src").textContent = S.source;
+}
+
+/* ===================================================================================
+   Pages
+   =================================================================================== */
+function pageDashboard() {
+  const v = view(), recs = v.recs, s = S.settings, act = recs.filter((r) => r.is_active);
+  if (!act.length) return head("لوحة الملخص", "Dashboard") + `<p class="note">لا توجد بيانات مطابقة للفلاتر الحالية.</p>`;
+  const mg = act.filter((r) => r.isMgr), spans = mg.map((r) => r.direct);
+  const vac = recs.filter((r) => r.is_vacant && !r.is_dup).length;
+  const invalid = act.filter((r) => X.INVALID_RS.has(r.status)).length, disc = act.filter((r) => r.status === X.RS.DISCONNECTED).length;
+  const bySev = X.SEVERITIES.map((x) => `${x}: ${v.findings.filter((f) => f.severity === x).length}`).join(" · ");
+  let h = head("لوحة الملخص", "Dashboard", `أشعة سينية على الهيكل التنظيمي: كل رقم هنا محسوب من البيانات المحمّلة (${esc(S.source)}).`);
+  h += `<div class="kpis">${kpi("إجمالي الموظفين", nf(act.length), "Active + On Leave")}${kpi("إجمالي المديرين", nf(mg.length), "لديهم موظف مباشر واحد على الأقل")}
+    ${kpi("Management Ratio", X.pct(mg.length / act.length), "المديرون ÷ الموظفون")}${kpi("الطبقات التنظيمية", X.layerCount(recs), "مستويات العمق حتى الـCEO")}
+    ${kpi("Average Span of Control", nf(X.mean(spans), 2))}${kpi("Median Span of Control", nfa(X.median(spans)))}
+    ${kpi("Vacancy Rate", X.pct(vac / (act.length + vac)), `${vac} وظيفة شاغرة`)}
+    ${kpi("علاقات إدارية غير صحيحة", nf(invalid), `+${disc} منقطعون بسبب خلل أعلى`, invalid ? "alert" : "")}
+    ${kpi("Organizational Findings", nf(v.findings.length), bySev)}</div>`;
+  h += `<h2>إجابات الأشعة السينية</h2><p class="sub">أسئلة الهيكل الأساسية، والدليل الرقمي تحت كل إجابة. اضغط أي بطاقة للانتقال إلى التفاصيل.</p>`;
+  h += `<div class="qa">${X.keyQuestions(S.model, recs, v.findings, s).map((q) => `<a href="#${q.page}"><div class="q">${esc(q.question)}</div><div class="a">${esc(q.answer)}</div><div class="e">${esc(q.evidence)}</div></a>`).join("")}</div>`;
+  const lm = X.layerMetrics(recs, "job_level");
+  h += `<h2>التوزيع والهيكل</h2><div class="grid2">
+    <div class="panel"><h3>الموظفون والمديرون حسب Job Level</h3>${hbar(lm.map((l) => ({ label: `${l.layer} · ${l.layer_name}`, values: [l.employees, l.managers] })), [["Employees", COL.a], ["Managers", COL.b]], { labelW: 175 })}</div>
+    <div class="panel"><h3>توزيع Span of Control</h3>${spanHist(spans)}</div>
+    <div class="panel"><h3>الموظفون حسب الإدارة</h3>${hbar([...X.groupBy(act, (r) => X.label(r.department))].map(([d, rs]) => ({ label: d, values: [rs.length] })).sort((a, b) => b.values[0] - a.values[0]), [["Employees", COL.a]])}</div>
+    <div class="panel"><h3>الهيكل الإداري: Business Unit ← Department</h3><p class="sub">مساحة كل مستطيل تساوي عدد موظفي الإدارة.</p>${treemap(recs)}</div></div>`;
+  h += `<div class="panel" style="margin-top:16px"><h3>الملاحظات حسب النوع ومستوى الأهمية</h3>${findingsChart(v.findings)}</div>`;
+  return h;
+}
+function spanHist(spans) {
+  const s = S.settings, cnt = new Map(); spans.forEach((n) => cnt.set(n, (cnt.get(n) || 0) + 1));
+  const cat = (n) => (n <= s.low ? ["Low", COL.b] : n > s.high ? ["High", COL.c] : ["Within Range", COL.a]);
+  const bins = [...cnt].map(([x, y]) => ({ x, y, color: cat(x)[1], tip: `${x} موظف مباشر: ${y} مدير (${cat(x)[0]})` }));
+  return legend([["Low ≤ " + s.low, COL.b], ["Within Range", COL.a], ["High > " + s.high, COL.c]]) +
+    vbar(bins, { xLabel: "عدد الموظفين المباشرين لكل مدير", yLabel: "المديرون",
+      marks: [{ x: s.low + 1, edge: true, label: "Low", y: 12 }, { x: s.high + 1, edge: true, label: "High", y: 26 },
+        ...(spans.length ? [{ x: Math.round(X.median(spans)), label: "Median " + X.g(X.median(spans)), color: "var(--accent)", y: 40 }] : [])] });
+}
+function findingsChart(fs) {
+  const types = X.FINDING_TYPES.filter((t) => fs.some((f) => f.type === t));
+  return hbar(types.map((t) => ({ label: t, values: X.SEVERITIES.map((sv) => fs.filter((f) => f.type === t && f.severity === sv).length) })),
+    X.SEVERITIES.map((sv) => [sv, SEV_COL[sv]]), { stacked: true, labelW: 180, width: 900 });
+}
+
+function pageLayers() {
+  const v = view(), recs = v.recs, s = S.settings, m = S.model;
+  const basis = S.sel.layerBasis || "job_level";
+  const lm = X.layerMetrics(recs, basis);
+  let h = head("الطبقات وعمق التسلسل", "Layers", "Layer 0 → CEO، 1 → C-Suite، 2 → Directors، 3 → Senior Managers، 4 → Managers، 5 → Supervisors، 6 → Individual Contributors.");
+  h += `<div class="tabs" role="tablist"><button role="tab" data-b="job_level" aria-selected="${basis === "job_level"}">حسب Job Level (المعلن)</button><button role="tab" data-b="depth" aria-selected="${basis === "depth"}">حسب العمق الفعلي (Structural Depth)</button></div>`;
+  after(() => document.querySelectorAll("[data-b]").forEach((b) => (b.onclick = () => { S.sel.layerBasis = b.dataset.b; render(); })));
+  h += `<div class="grid2"><div class="panel">${hbar(lm.map((l) => ({ label: `${l.layer} · ${l.layer_name}`, values: [l.employees, l.managers] })), [["Employees", COL.a], ["Managers", COL.b]], { labelW: 175 })}</div>
+    <div>${table(lm, [C("layer", "Layer"), C("layer_name", "Name"), C("employees", "Employees", "n"), C("pct_of_total", "% of total", "pct"), C("managers", "Managers", "n"), C("avg_salary", "Avg Salary", "money"), C("avg_span", "Avg Span", "n")], { file: "layers_" + basis })}</div></div>`;
+  const ds = X.depthStats(m, recs);
+  h += `<h2>Organizational Depth</h2><p class="sub">العمق = عدد العلاقات الإدارية بين الموظف والـCEO، محسوبًا من Manager ID. الإحصاءات على ${nf(ds.count)} موظف متصل بالـCEO (بدون الـCEO).</p>`;
+  h += `<div class="kpis">${kpi("Minimum", nfa(ds.min))}${kpi("Maximum", nfa(ds.max))}${kpi("Mean", nf(ds.mean, 2))}${kpi("Median", nfa(ds.median))}${kpi("Deep Hierarchy Threshold", s.deep, "العمق الأكبر منه يظهر بلون مختلف")}</div>`;
+  const dc = new Map(); recs.filter((r) => r.is_active && r.depth != null).forEach((r) => dc.set(r.depth, (dc.get(r.depth) || 0) + 1));
+  const act = recs.filter((r) => r.is_active && r.depth != null && r.job_level != null);
+  const lv = [...new Set(act.map((r) => r.job_level))].sort((a, b) => a - b), dp = [...new Set(act.map((r) => r.depth))].sort((a, b) => a - b);
+  const z = lv.map((l) => dp.map((d) => act.filter((r) => r.job_level === l && r.depth === d).length));
+  h += `<div class="grid2" style="margin-top:12px"><div class="panel"><h3>توزيع العمق</h3>${vbar([...dc].map(([x, y]) => ({ x, y, color: x > s.deep ? COL.b : COL.a, tip: `Depth ${x}: ${y} موظف` })), { xLabel: "Depth (عدد الخطوات حتى الـCEO)", yLabel: "الموظفون", marks: [{ x: s.deep + 1, edge: true, label: "Deep > " + s.deep }] })}</div>
+    <div class="panel"><h3>Job Level مقابل العمق الفعلي</h3><p class="sub">الخلايا بعيدًا عن القطر تعني أن المستوى المعلن لا يطابق موقع الموظف في التسلسل.</p>${heatmap(lv.map((l) => "Level " + l), dp.map((d) => "D" + d), z)}</div></div>`;
+  h += `<h2>أطول Reporting Chains</h2>${table(X.longestChains(m, recs, 30), [C("node_id", "Employee ID", "mono"), C("employee_name"), C("job_title"), C("department"), C("depth", "Depth", "n"), C("chain", "Chain (CEO ← … ← Employee)", "wrap")], { file: "longest_chains", height: 340 })}`;
+  h += `<h2>العمق لكل موظف</h2>${table(recs.filter((r) => r.is_active).sort((a, b) => (b.depth ?? 99) - (a.depth ?? 99)),
+    [C("node_id", "Employee ID", "mono"), C("employee_name"), C("job_title"), C("job_level", "Level", "n"), C("department"), C("manager_id", "Manager ID", "mono"), C("depth", "Depth", "n"), C("status")], { file: "depth_per_employee", height: 360 })}`;
+  return h;
+}
+
+function pageSpan() {
+  const v = view(), s = S.settings;
+  const mt = v.recs.filter((r) => r.isMgr).map((r) => ({ ...r, cat: X.spanCat(r.direct, s) })).sort((a, b) => b.direct - a.direct);
+  let h = head("نطاق الإشراف", "Span of Control", "عدد الموظفين المباشرين النشطين لكل مدير. التصنيف يستدعي المراجعة ولا يعني حكمًا على المدير أو الدور.");
+  if (!mt.length) return h + `<p class="note">لا يوجد مديرون ضمن الفلاتر الحالية.</p>`;
+  const st = X.spanStats(mt.map((r) => r.direct));
+  h += `<div class="kpis">${kpi("المديرون", nf(st.count))}${kpi("Minimum", nfa(st.min))}${kpi("Maximum", nfa(st.max))}${kpi("Mean", nf(st.mean, 2))}${kpi("Median", nfa(st.median))}${kpi("P25", nfa(st.p25))}${kpi("P75", nfa(st.p75))}</div>`;
+  h += `<div class="panel" style="margin-top:14px">${spanHist(mt.map((r) => r.direct))}<p class="note">Low: ≤ ${s.low} · High: > ${s.high} (من الإعدادات)</p></div>`;
+  const cat = S.sel.spanCat || "";
+  const rows = (cat ? mt.filter((r) => r.cat === cat) : mt).map((r) => ({ ...r, vs: r.direct / st.median }));
+  h += `<h2>المديرون</h2><div class="toolbar"><label>التصنيف<select id="spcat"><option value="">الكل</option>${["Low", "Within Range", "High"].map((c) => `<option ${c === cat ? "selected" : ""}>${c}</option>`).join("")}</select></label></div>`;
+  after(() => ($("#spcat").onchange = (e) => { S.sel.spanCat = e.target.value; render(); }));
+  h += table(rows, [C("node_id", "Manager ID", "mono"), C("employee_name"), C("job_title"), C("job_level", "Level", "n"), C("department"), C("direct", "Direct Reports", "n"),
+    C("vacDirect", "Vacant Direct", "n"), C("total", "Total Reports", "n"), C("cat", "Span Category"), C("vs", "× Org Median", "n")], { file: "managers_span", height: 420 });
+  const by = (key) => [...X.groupBy(v.recs.filter((r) => r.isMgr), (r) => X.label(r[key]))].map(([k, rs]) => { const sp = rs.map((r) => r.direct);
+    return { k, managers: rs.length, avg: X.mean(sp), med: X.median(sp), min: Math.min(...sp), max: Math.max(...sp), low: sp.filter((n) => n <= s.low).length, high: sp.filter((n) => n > s.high).length }; });
+  const cols = (l) => [C("k", l), C("managers", "Managers", "n"), C("avg", "Avg Span", "n"), C("med", "Median", "n"), C("min", "Min", "n"), C("max", "Max", "n"), C("low", "Low Span", "n"), C("high", "High Span", "n")];
+  h += `<h2>حسب الإدارة</h2>${table(by("department").sort((a, b) => b.managers - a.managers), cols("Department"), { file: "span_by_department" })}`;
+  h += `<h2>حسب Job Level</h2>${table(by("job_level").sort((a, b) => String(a.k).localeCompare(String(b.k))), cols("Job Level"), { file: "span_by_level" })}`;
+  return h;
+}
+
+function pageDepartments() {
+  const v = view(), s = S.settings, tab = S.sel.deptTab || "department";
+  let h = head("الإدارات", "Departments", "Headcount، المديرون، Management Ratio، Span، العمق، الشواغر، الرواتب وعدد الطبقات لكل وحدة تنظيمية.");
+  h += `<div class="tabs">${[["department", "Departments"], ["division", "Divisions"], ["business_unit", "Business Units"], ["titles", "Job Titles"]].map(([k, l]) => `<button data-t="${k}" aria-selected="${tab === k}">${l}</button>`).join("")}</div>`;
+  after(() => document.querySelectorAll("[data-t]").forEach((b) => (b.onclick = () => { S.sel.deptTab = b.dataset.t; render(); })));
+  if (tab === "titles") return h + titlesTab(v.recs);
+  const by = tab;
+  let units = X.unitMetrics(v.recs, by, s);
+  const q = (S.sel.deptQ || "").toLowerCase(), flt = S.sel.deptFlt || "";
+  if (q) units = units.filter((u) => u[by].toLowerCase().includes(q));
+  if (flt === "ratio") units = units.filter((u) => u.management_ratio > s.ratio);
+  if (flt === "small") units = units.filter((u) => u.headcount <= s.small);
+  if (flt === "vac") units = units.filter((u) => u.vacancies > 0);
+  if (flt === "invalid") units = units.filter((u) => u.invalid_reporting > 0);
+  h += `<div class="toolbar"><label class="grow">بحث<input type="search" id="dq" value="${esc(S.sel.deptQ || "")}" placeholder="اسم الوحدة…"></label>
+    <label>تصفية<select id="dflt">${[["", "الكل"], ["ratio", "Management Ratio مرتفع"], ["small", "وحدات صغيرة"], ["vac", "بها شواغر"], ["invalid", "بها علاقات غير صحيحة"]].map(([k, l]) => `<option value="${k}" ${k === flt ? "selected" : ""}>${l}</option>`).join("")}</select></label></div>`;
+  after(() => { $("#dq").oninput = (e) => { S.sel.deptQ = e.target.value; clearTimeout(S._dt); S._dt = setTimeout(() => { render(); const el = $("#dq"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
+    $("#dflt").onchange = (e) => { S.sel.deptFlt = e.target.value; render(); }; });
+  const cols = [C(by, X.LABELS[by]), ...(by === "department" ? [C("division"), C("business_unit")] : []), C("headcount", "Headcount", "n"), C("managers", "Managers", "n"),
+    C("management_ratio", "Mgmt Ratio", "pct"), C("avg_span", "Avg Span", "n"), C("avg_depth", "Avg Depth", "n"), C("vacancies", "Vacancies", "n"),
+    C("avg_salary", "Avg Salary", "money"), C("median_salary", "Median Salary", "money"), C("layers", "Layers", "n"), C("max_depth", "Max Depth", "n"),
+    C("vacancy_rate", "Vacancy Rate", "pct"), C("low_span_managers", "Low Span", "n"), C("high_span_managers", "High Span", "n"), C("invalid_reporting", "Invalid Reporting", "n")];
+  h += table(units, cols, { file: by + "_analysis", height: 420, onClick: by === "department" ? (u) => { S.sel.dept = u.department; render(); setTimeout(() => $("#ddetail")?.scrollIntoView({ behavior: "smooth" }), 30); } : null, selKey: by === "department" ? "dept" : null });
+  if (by === "department") h += `<p class="note">اضغط على أي إدارة لعرض ملاحظاتها.</p>`;
+  const withRatio = units.filter((u) => X.isNum(u.management_ratio)).sort((a, b) => b.management_ratio - a.management_ratio);
+  h += `<div class="grid2" style="margin-top:14px"><div class="panel"><h3>Management Ratio</h3>${hbar(withRatio.map((u) => ({ label: u[by], values: [u.management_ratio * 100], tip: () => `${u[by]}: ${X.pct(u.management_ratio)} (${u.managers} / ${u.headcount})` })), [["Ratio", COL.a]], { threshold: s.ratio * 100, thresholdLabel: `الحد ${X.pct(s.ratio, 0)}`, unit: "%" })}</div>
+    <div class="panel"><h3>Headcount مقابل متوسط Span of Control</h3>${scatter(units.filter((u) => X.isNum(u.avg_span)).map((u) => ({ x: u.headcount, y: u.avg_span, label: u[by], tip: `${u[by]} · Headcount ${u.headcount} · Avg Span ${nf(u.avg_span, 2)} · Layers ${u.layers}` })), { xLabel: "Headcount (log)", yLabel: "Avg Span" })}</div></div>`;
+  if (by === "department" && S.sel.dept) {
+    const u = X.unitMetrics(v.recs, "department", s).find((x) => x.department === S.sel.dept);
+    const fs = S.findings.filter((f) => X.label(f.department) === S.sel.dept);
+    if (u) h += `<div class="detail" id="ddetail"><h3>${esc(S.sel.dept)}</h3><div class="kpis">${kpi("Headcount", u.headcount)}${kpi("Managers", u.managers)}${kpi("Mgmt Ratio", X.pct(u.management_ratio))}${kpi("Avg Span", nf(u.avg_span, 2))}${kpi("Layers", u.layers)}${kpi("Vacancies", u.vacancies)}</div>
+      <h3 style="margin-top:12px">الملاحظات (${fs.length})</h3>${table(fs, [C("finding_id", "ID", "mono"), C("type"), C("severity", "Severity", "sev"), C("entity_name", "Entity"), C("description", "Description", "wrap")], { file: "findings_dept", height: 300, onClick: (f) => { S.sel.finding = f.finding_id; location.hash = "#findings"; } })}</div>`;
+  }
+  return h;
+}
+function titlesTab(recs) {
+  const jt = X.jobTitleAnalysis(recs, S.settings);
+  return `<h2>المسميات المكررة بصيغ كتابة مختلفة</h2>${jt.variants.length ? table(jt.variants, [C("normalized_title", "Normalized"), C("variants", "Variants", "wrap"), C("positions", "Positions", "n"), C("departments", "Departments", "wrap")], { file: "title_variants" }) : `<p class="note">لا توجد.</p>`}
+    <h2>المسميات المتشابهة (≥ ${S.settings.similarity})</h2><p class="sub">مقارنة داخل نفس القطاع، مع تجاهل أزواج السلم الوظيفي (مثل Accountant / Senior Accountant).</p>
+    ${jt.similar.length ? table(jt.similar, [C("title_a", "Title A"), C("title_b", "Title B"), C("similarity", "Similarity", "n"), C("division"), C("positions_a", "Pos. A", "n"), C("positions_b", "Pos. B", "n"), C("departments_a", "Depts A", "wrap"), C("departments_b", "Depts B", "wrap")], { file: "similar_titles" }) : `<p class="note">لا توجد.</p>`}
+    <h2>تكرار المسميات الوظيفية</h2>${table(jt.titles, [C("job_title"), C("positions", "Positions", "n"), C("departments", "Departments", "wrap")], { file: "job_titles", height: 380 })}`;
+}
+
+/* ---------------------------------------------------------------- organization map */
+function pageMap() {
+  const m = S.model, s = S.settings, act = m.recs.filter((r) => r.is_active);
+  const scope = S.sel.mapScope || "org", val = S.sel.mapVal || "", mgrOnly = S.sel.mapMgr ?? scope === "org", showVac = !!S.sel.mapVac, color = S.sel.mapColor || "span";
+  const levels = S.sel.mapLevels ?? (scope === "org" ? 8 : 15);
+  const colKey = { bu: "business_unit", div: "division", dept: "department" }[scope];
+  const valOpts = colKey ? [...new Set(act.map((r) => r[colKey]).filter(Boolean))].sort() : scope === "mgr" ? act.filter((r) => r.isMgr).sort((a, b) => b.total - a.total).map((r) => r.node_id) : [];
+  const value = valOpts.includes(val) ? val : valOpts[0] || "";
+  let h = head("الخريطة التنظيمية", "Organization Map", "شبكة Employee → Manager. المدير في الأعلى وفريقه تحته؛ حجم العقدة يتناسب مع إجمالي التابعين. اسحب للتحريك، واستخدم العجلة أو الأزرار للتكبير.");
+  h += `<div class="toolbar"><label>النطاق<select id="msc">${[["org", "Entire Organization"], ["bu", "Business Unit"], ["div", "Division"], ["dept", "Department"], ["mgr", "Specific Manager"]].map(([k, l]) => `<option value="${k}" ${k === scope ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    ${scope !== "org" ? `<label class="grow">القيمة<select id="mval">${valOpts.map((o) => { const r = m.byId.get(o); return `<option value="${esc(o)}" ${o === value ? "selected" : ""}>${esc(scope === "mgr" ? `${o} · ${r.employee_name} · ${r.job_title} (${r.total})` : o)}</option>`; }).join("")}</select></label>` : ""}
+    <label>المستويات<input type="number" id="mlv" min="1" max="15" value="${levels}"></label>
+    <label>اللون<select id="mcol"><option value="span" ${color === "span" ? "selected" : ""}>Span category</option><option value="depth" ${color === "depth" ? "selected" : ""}>Depth</option></select></label>
+    <label style="min-width:auto;flex:0 0 auto"><span><input type="checkbox" id="mmo" ${mgrOnly ? "checked" : ""}> المديرون فقط</span><span><input type="checkbox" id="mva" ${showVac ? "checked" : ""}> إظهار الشواغر</span></label></div>`;
+  after(() => {
+    $("#msc").onchange = (e) => { S.sel.mapScope = e.target.value; S.sel.mapVal = ""; S.sel.mapMgr = undefined; S.sel.mapLevels = undefined; render(); };
+    if ($("#mval")) $("#mval").onchange = (e) => { S.sel.mapVal = e.target.value; render(); };
+    $("#mlv").onchange = (e) => { S.sel.mapLevels = Math.max(1, Math.min(15, +e.target.value || 1)); render(); };
+    $("#mcol").onchange = (e) => { S.sel.mapColor = e.target.value; render(); };
+    $("#mmo").onchange = (e) => { S.sel.mapMgr = e.target.checked; render(); };
+    $("#mva").onchange = (e) => { S.sel.mapVac = e.target.checked; render(); };
+  });
+  // select nodes
+  const base = m.recs.filter((r) => !r.is_dup && (r.is_active || (showVac && r.is_vacant)));
+  let ids;
+  if (scope === "org") ids = new Set(base.map((r) => r.node_id));
+  else if (scope === "mgr") ids = new Set(X.subtreeIds(m, value, true, showVac));
+  else ids = new Set(base.filter((r) => r[colKey] === value).map((r) => r.node_id));
+  if (mgrOnly) { const keep = new Set([...ids].filter((i) => m.byId.get(i).isMgr)); if (scope === "mgr") keep.add(value); ids = keep; }
+  const total = ids.size;
+  const rel = relDepth(m, ids, scope === "mgr" ? value : null);
+  ids = new Set([...ids].filter((i) => rel.get(i) <= levels));
+  let truncated = false;
+  if (ids.size > s.maxNodes) { truncated = true; const byL = [...ids].sort((a, b) => rel.get(a) - rel.get(b) || (a < b ? -1 : 1)); ids = new Set(byL.slice(0, s.maxNodes)); }
+  h += `<p class="note">عرض ${nf(ids.size)} من ${nf(total)} عقدة في النطاق${truncated ? ` — تم الاقتصار على ${s.maxNodes} عقدة (من الإعدادات) للحفاظ على وضوح الرسم` : ""}.</p>`;
+  if (!ids.size) return h + `<p class="note">لا توجد عقد للعرض.</p>`;
+  h += legend(color === "span" ? [["Span: Low", COL.b], ["Span: Within Range", COL.a], ["Span: High", COL.c], ["Individual contributor", "var(--line)"], ["Vacant", "var(--surface)"]] : [["Depth: أفتح = أقرب للـCEO", "var(--accent)"]]);
+  h += `<div class="netwrap"><svg id="net"></svg></div><div class="toolbar" style="margin-top:8px"><button class="btn sm" id="zin">تكبير +</button><button class="btn sm" id="zout">تصغير −</button><button class="btn sm" id="zfit">ملاءمة</button></div>`;
+  after(() => drawNetwork(ids, rel, color));
+  h += `<h2>العقد المعروضة</h2>${table([...ids].map((i) => m.byId.get(i)), [C("node_id", "Node ID", "mono"), C("employee_name"), C("job_title"), C("department"), C("manager_id", "Manager ID", "mono"), C("depth", "Depth", "n"), C("direct", "Direct", "n"), C("total", "Total", "n"), C("status")], { file: "map_nodes", height: 300 })}`;
+  return h;
+}
+function relDepth(m, ids, hint) {
+  const roots = [...ids].filter((n) => !ids.has(m.parent.get(n)) || m.parent.get(n) === n);
+  if (hint && ids.has(hint) && !roots.includes(hint)) roots.push(hint);
+  const d = new Map(); roots.sort().forEach((r) => d.set(r, 0)); let fr = [...roots];
+  while (fr.length) { const nx = []; for (const n of fr) for (const c of m.children.get(n) || []) if (ids.has(c) && !d.has(c)) { d.set(c, d.get(n) + 1); nx.push(c); } fr = nx; }
+  for (const n of ids) if (!d.has(n)) d.set(n, 0);
+  return d;
+}
+function drawNetwork(ids, rel, color) {
+  const m = S.model, s = S.settings, svg = $("#net");
+  const kids = new Map([...ids].map((n) => [n, (m.children.get(n) || []).filter((c) => ids.has(c) && rel.get(c) === rel.get(n) + 1).sort()]));
+  const roots = [...ids].filter((n) => rel.get(n) === 0).sort();
+  const xpos = new Map(); let counter = 0;
+  for (const root of roots) { const st = [[root, false]];
+    while (st.length) { const [n, done] = st.pop(); const k = kids.get(n) || [];
+      if (done || !k.length) { xpos.set(n, k.length ? X.mean(k.map((c) => xpos.get(c))) : counter++); continue; }
+      st.push([n, true]); for (let i = k.length - 1; i >= 0; i--) if (!xpos.has(k[i])) st.push([k[i], false]); }
+    counter += 0.6; }
+  const DX = 22, DY = 120, maxTot = Math.max(1, ...[...ids].map((i) => m.byId.get(i).total));
+  const P = (n) => [xpos.get(n) * DX + 20, rel.get(n) * DY + 30];
+  let e = "", nodes = "", labels = "";
+  for (const n of ids) for (const c of kids.get(n) || []) { const [x0, y0] = P(n), [x1, y1] = P(c), ym = (y0 + y1) / 2;
+    e += `M${x0} ${y0}V${ym}H${x1}V${y1}`; }
+  const maxD = Math.max(1, ...[...ids].map((i) => m.byId.get(i).depth ?? 0));
+  for (const n of ids) { const r = m.byId.get(n), [x, y] = P(n), rad = 5 + 12 * Math.sqrt(r.total / maxTot);
+    let fill;
+    if (color === "depth") fill = `color-mix(in srgb, var(--accent) ${Math.round(100 - 70 * ((r.depth ?? maxD) / maxD))}%, var(--surface))`;
+    else fill = r.is_vacant ? "var(--surface)" : !r.isMgr ? "var(--line)" : r.direct <= s.low ? COL.b : r.direct > s.high ? COL.c : COL.a;
+    nodes += `<circle cx="${x}" cy="${y}" r="${rad.toFixed(1)}" fill="${fill}" stroke="${r.is_vacant ? "var(--muted)" : "var(--surface)"}" stroke-width="1.5" ${tipAttr(`${n} – ${r.employee_name || "(Vacant)"}\n${r.job_title} · ${r.department}\nDirect ${r.direct} · Total ${r.total} · Depth ${r.depth ?? "—"}\n${r.status}`)}/>`;
+    if (rel.get(n) === 0 || ids.size <= 60) labels += `<text x="${x}" y="${y - rad - 4}" text-anchor="middle">${esc(String(r.job_title).slice(0, 26))}</text>`; }
+  const W = Math.max(400, counter * DX + 40), H = (Math.max(...rel.values()) + 1) * DY + 40;
+  svg.innerHTML = `<g id="netg"><path d="${e}" fill="none" stroke="var(--line)" stroke-width="1"/>${nodes}${labels}</g>`;
+  let vb = [0, 0, W, H]; const set = () => svg.setAttribute("viewBox", vb.map((v) => v.toFixed(1)).join(" "));
+  const fit = () => { const ar = svg.clientWidth / svg.clientHeight || 2; const w = Math.max(W, H * ar), h2 = w / ar; vb = [(W - w) / 2, (H - h2) / 2, w, h2]; set(); };
+  fit();
+  const zoom = (f, cx = vb[0] + vb[2] / 2, cy = vb[1] + vb[3] / 2) => { vb = [cx - (cx - vb[0]) * f, cy - (cy - vb[1]) * f, vb[2] * f, vb[3] * f]; set(); };
+  svg.addEventListener("wheel", (ev) => { ev.preventDefault(); const rct = svg.getBoundingClientRect();
+    zoom(ev.deltaY > 0 ? 1.15 : 1 / 1.15, vb[0] + ((ev.clientX - rct.left) / rct.width) * vb[2], vb[1] + ((ev.clientY - rct.top) / rct.height) * vb[3]); }, { passive: false });
+  let drag = null;
+  svg.addEventListener("pointerdown", (ev) => { drag = [ev.clientX, ev.clientY, vb[0], vb[1]]; svg.setPointerCapture(ev.pointerId); });
+  svg.addEventListener("pointermove", (ev) => { if (!drag) return; const k = vb[2] / svg.clientWidth; vb[0] = drag[2] - (ev.clientX - drag[0]) * k; vb[1] = drag[3] - (ev.clientY - drag[1]) * k; set(); });
+  svg.addEventListener("pointerup", () => (drag = null));
+  $("#zin").onclick = () => zoom(1 / 1.3); $("#zout").onclick = () => zoom(1.3); $("#zfit").onclick = fit;
+}
+
+/* ---------------------------------------------------------------- explorer */
+function pageExplorer() {
+  const m = S.model, q = (S.sel.expQ || "").trim().toLowerCase();
+  let pool = m.recs.filter((r) => !r.is_dup && (r.is_active || r.is_vacant || r.employment_status === "Terminated"));
+  pool = q ? pool.filter((r) => r.node_id.toLowerCase().includes(q) || (r.employee_name || "").toLowerCase().includes(q)) : [...pool].sort((a, b) => b.total - a.total);
+  const id = S.sel.emp && m.byId.has(S.sel.emp) && (!q || pool.some((r) => r.node_id === S.sel.emp)) ? S.sel.emp : pool[0]?.node_id;
+  let h = head("مستكشف الموظفين", "Employee Explorer", "ابحث برقم الموظف أو اسمه لعرض سلسلته الإدارية والموظفين التابعين له.");
+  h += `<div class="toolbar"><label class="grow">بحث (Employee ID أو الاسم)<input type="search" id="exq" value="${esc(S.sel.expQ || "")}" placeholder="مثال: E10492 أو Smith"></label>
+    <label class="grow">الموظف (${nf(pool.length)} نتيجة${pool.length > 300 ? "، أول 300" : ""})<select id="exs">${pool.slice(0, 300).map((r) => `<option value="${esc(r.node_id)}" ${r.node_id === id ? "selected" : ""}>${esc(`${r.node_id} · ${r.employee_name || "(Vacant)"} · ${r.job_title} · ${r.department}`)}</option>`).join("")}</select></label></div>`;
+  after(() => { $("#exq").oninput = (e) => { S.sel.expQ = e.target.value; clearTimeout(S._et); S._et = setTimeout(() => { render(); const el = $("#exq"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 250); };
+    $("#exs").onchange = (e) => { S.sel.emp = e.target.value; render(); }; });
+  if (!id) return h + `<p class="note">لا توجد نتائج مطابقة.</p>`;
+  const r = m.byId.get(id);
+  h += `<h2>${esc(r.employee_name || "(وظيفة شاغرة)")} — ${esc(r.job_title)}</h2>`;
+  h += `<div class="kpis">${kpi("Position", `<span class="mono">${esc(r.position_id || "—")}</span>`, r.position_status)}${kpi("Department", esc(r.department || "—"), esc(`${r.division} · ${r.business_unit}`))}
+    ${kpi("Salary", nf(r.salary))}${kpi("Job Level", r.job_level == null ? "—" : `${r.job_level}`, esc(`${X.LEVEL_NAMES[r.job_level] || ""} · ${r.grade || ""}`))}
+    ${kpi("Years of Service", nfa(r.years_of_service))}${kpi("Depth", r.depth ?? "—", esc(r.status))}</div>
+    <p class="note">${esc([r.employment_status, r.employment_type, r.work_arrangement, r.location, r.performance_rating ? "Performance " + r.performance_rating : ""].filter(Boolean).join(" · "))}</p>`;
+  const chain = X.chainUp(m, id), loop = chain.length > 1 && chain.slice(0, -1).includes(chain[chain.length - 1]);
+  let ch = chain.map((n, i) => { const x = m.byId.get(n);
+    const body = !x ? `<b class="mono">${esc(n)}</b> — <span class="warn">غير موجود في البيانات</span>`
+      : `<b class="mono">${esc(n)}</b> · ${esc(x.employee_name || "(Vacant)")}${["Active", "On Leave", ""].includes(x.employment_status) ? "" : ` <b class="warn">[${esc(x.employment_status)}]</b>`}<small>${esc(x.job_title)} · ${esc(x.department)}</small>`;
+    return `<div class="node ${i === 0 ? "sel" : ""}">${loop && i === chain.length - 1 ? "↻ " : ""}${body}</div>`; }).join(`<div class="up">↑</div>`);
+  const last = m.byId.get(chain[chain.length - 1]);
+  if (!loop && last && !last.manager_id && chain[chain.length - 1] !== m.ceo) ch += `<div class="up">↑</div><div class="node"><span class="warn">لا يوجد Manager ID</span></div>`;
+  const reaches = chain[chain.length - 1] === m.ceo;
+  const direct = X.directIds(m, id, true), indirect = X.subtreeIds(m, id, false, true).filter((x) => !direct.includes(x));
+  const cols = [C("node_id", "ID", "mono"), C("employee_name"), C("job_title"), C("job_level", "Level", "n"), C("department"), C("depth", "Depth", "n"), C("direct", "Direct", "n"), C("total", "Total", "n"), C("position_status", "Position"), C("status")];
+  h += `<div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)"><div class="panel"><h3>السلسلة الإدارية للأعلى</h3><div class="chain">${ch}</div>
+    <p class="${reaches ? "okc" : "warn"}" style="margin-bottom:0">${reaches ? `تصل السلسلة إلى الـCEO في ${chain.length - 1} خطوة.` : "السلسلة لا تصل إلى الـCEO."}</p></div>
+    <div><h3>Direct Reports (${direct.length})</h3>${direct.length ? table(direct.map((x) => m.byId.get(x)), cols, { file: "direct_" + id, height: 240, onClick: (x) => { S.sel.emp = x.node_id; S.sel.expQ = ""; render(); } }) : `<p class="note">لا يوجد.</p>`}
+    <h3 style="margin-top:14px">Indirect Reports (${indirect.length})</h3>${indirect.length ? table(indirect.map((x) => m.byId.get(x)).sort((a, b) => (a.depth ?? 99) - (b.depth ?? 99)), cols, { file: "indirect_" + id, height: 260, onClick: (x) => { S.sel.emp = x.node_id; S.sel.expQ = ""; render(); } }) : `<p class="note">لا يوجد.</p>`}</div></div>`;
+  const fs = S.findings.filter((f) => f.related.includes(id));
+  if (fs.length) h += `<h2>الملاحظات المرتبطة (${fs.length})</h2>${table(fs, [C("finding_id", "ID", "mono"), C("type"), C("severity", "Severity", "sev"), C("description", "Description", "wrap")], { file: "findings_" + id, onClick: (f) => { S.sel.finding = f.finding_id; location.hash = "#findings"; } })}`;
+  return h;
+}
+
+/* ---------------------------------------------------------------- findings */
+function pageFindings() {
+  const v = view(), F = S.sel.fd || {};
+  let fs = v.findings;
+  let h = head("ملاحظات الأشعة", "X-Ray Findings", "ملاحظات مكتشفة آليًا. كل ملاحظة تستدعي المراجعة ولا تمثل حكمًا نهائيًا، وكل واحدة قابلة للتتبع إلى السجلات المصدرية.");
+  h += `<div class="kpis">${kpi("Findings", nf(fs.length))}${X.SEVERITIES.map((s) => kpi(sevBadge(s), nf(fs.filter((f) => f.severity === s).length))).join("")}</div>`;
+  if (F.type) fs = fs.filter((f) => f.type === F.type);
+  if (F.sev) fs = fs.filter((f) => f.severity === F.sev);
+  if (F.dept) fs = fs.filter((f) => f.department === F.dept);
+  if (F.q) { const q = F.q.toLowerCase(); fs = fs.filter((f) => [f.finding_id, f.entity_id, f.entity_name, f.description, f.evidence].join(" ").toLowerCase().includes(q)); }
+  h += `<div class="toolbar" style="margin-top:14px"><label>Type<select id="fty"><option value="">الكل</option>${X.FINDING_TYPES.filter((t) => v.findings.some((f) => f.type === t)).map((t) => `<option value="${t}" ${t === F.type ? "selected" : ""}>${t} · ${X.TYPE_AR[t]}</option>`).join("")}</select></label>
+    <label>Severity<select id="fsv"><option value="">الكل</option>${X.SEVERITIES.map((s) => `<option ${s === F.sev ? "selected" : ""}>${s}</option>`).join("")}</select></label>
+    <label>Department<select id="fdp"><option value="">الكل</option>${[...new Set(v.findings.map((f) => f.department).filter(Boolean))].sort().map((d) => `<option ${d === F.dept ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+    <label class="grow">بحث<input type="search" id="fq" value="${esc(F.q || "")}"></label></div>`;
+  after(() => { const upd = (k) => (e) => { S.sel.fd = { ...(S.sel.fd || {}), [k]: e.target.value }; render(); };
+    $("#fty").onchange = upd("type"); $("#fsv").onchange = upd("sev"); $("#fdp").onchange = upd("dept");
+    $("#fq").oninput = (e) => { S.sel.fd = { ...(S.sel.fd || {}), q: e.target.value }; clearTimeout(S._ft); S._ft = setTimeout(() => { render(); const el = $("#fq"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 300); }; });
+  h += `<details class="panel" style="margin-bottom:12px"><summary>التوزيع حسب النوع ومستوى الأهمية</summary>${findingsChart(fs)}</details>`;
+  h += `<p class="note">${nf(fs.length)} ملاحظة. اضغط أي صف لعرض التفسير الكامل (Explainability).</p>`;
+  h += table(fs, [C("finding_id", "Finding ID", "mono"), C("type", "Type"), C("severity", "Severity", "sev"), C("entity_type", "Entity Type"), C("entity_id", "Entity", "mono"),
+    C("entity_name", "Name"), C("department"), C("description", "Description", "wrap"), C("evidence", "Evidence", "wrap"), C("recommended", "Recommended Investigation", "wrap")],
+    { file: "xray_findings", height: 420, selKey: "finding", onClick: (f) => { S.sel.finding = f.finding_id; render(); setTimeout(() => $("#fdetail")?.scrollIntoView({ behavior: "smooth" }), 30); } });
+  const sel = S.findings.find((f) => f.finding_id === S.sel.finding) || fs[0];
+  if (sel) h += findingDetail(sel);
+  return h;
+}
+function findingDetail(f) {
+  const recs = f.related.map((i) => S.model.byId.get(i)).filter(Boolean);
+  return `<div class="detail" id="fdetail"><h3><span class="mono">${f.finding_id}</span> · ${f.type} · ${esc(X.TYPE_AR[f.type])} ${sevBadge(f.severity)}</h3>
+    <p>${esc(f.entity_type)}: <b class="mono">${esc(f.entity_id)}</b> — ${esc(f.entity_name)} · الإدارة: ${esc(f.department || "—")}</p>
+    <p>${esc(f.description)}</p>
+    <div class="facts"><div><span>Metric</span><b>${esc(f.metric)}</b></div><div><span>Value</span><b>${esc(f.value)}</b></div>
+      <div><span>Configured Threshold</span><b>${esc(f.threshold ?? "—")}</b></div><div><span>Benchmark</span><b>${esc(f.benchmark || "—")}</b></div></div>
+    <h3>Evidence</h3><div class="evidence">${esc(f.evidence)}</div>
+    <h3 style="margin-top:12px">Rule</h3><div class="rule">${esc(f.rule)}</div>
+    <h3 style="margin-top:12px">Recommended Investigation</h3><p>${esc(f.recommended)}</p>
+    <h3>السجلات المصدرية (${recs.length})</h3>${table(recs, [C("row_number", "Row", "n"), C("node_id", "Node ID", "mono"), C("employee_name"), C("job_title"), C("job_level", "Level", "n"), C("department"),
+      C("manager_id", "Manager ID", "mono"), C("employment_status"), C("position_id", "Position ID", "mono"), C("position_status"), C("depth", "Depth", "n"), C("direct", "Direct", "n"), C("total", "Total", "n"), C("status")], { file: "evidence_" + f.finding_id, height: 280 })}</div>`;
+}
+
+/* ---------------------------------------------------------------- data quality */
+function pageQuality() {
+  const checks = dq(), dims = X.dimensionScores(checks);
+  const tot = X.sum(checks.map((c) => c.records_checked)), fail = X.sum(checks.map((c) => c.failed));
+  let h = head("جودة البيانات", "Data Quality", "Completeness · Uniqueness · Validity · Consistency · Referential Integrity — محسوبة على كامل الملف (بدون الفلاتر) حتى لا تُخفى السجلات المعيبة.");
+  h += `<div class="kpis">${kpi("Overall", X.pct(tot ? (tot - fail) / tot : 1), "نسبة الفحوص الناجحة")}${dims.map((d) => kpi(d.dimension, X.pct(d.score), `${d.failed} غير مطابق من ${nf(d.records)}`)).join("")}</div>`;
+  h += `<h2>المقاييس</h2><p class="sub">اضغط أي مقياس لعرض السجلات المتأثرة.</p>`;
+  h += table(checks, [C("check_id", "ID", "mono"), C("dimension"), C("check", "Check"), C("field", "Field", "mono"), C("rule", "Rule", "wrap"), C("records_checked", "Checked", "n"), C("failed", "Failed", "n"), C("score", "Score", "pct"), C("status", "Status", "status")],
+    { file: "data_quality", height: 440, selKey: "dq", onClick: (c) => { S.sel.dq = c.check_id; render(); setTimeout(() => $("#dqdetail")?.scrollIntoView({ behavior: "smooth" }), 30); } });
+  const c = checks.find((x) => x.check_id === S.sel.dq) || checks.find((x) => x.failed) || checks[0];
+  h += `<div class="detail" id="dqdetail"><h3><span class="mono">${c.check_id}</span> · ${esc(c.check)}</h3><p>${esc(c.rule)} — Score <b>${X.pct(c.score)}</b> (${c.failed} من ${nf(c.records_checked)})</p>`;
+  h += c.failing.length ? table(c.failing, [C("row_number", "Row", "n"), C("node_id", "Node ID", "mono"), C("employee_name"), C("job_title"), C("job_level", "Level", "n"), C("department"), C("division"),
+    C("manager_id", "Manager ID", "mono"), C("manager_name"), C("employment_status"), C("position_id", "Position ID", "mono"), C("position_status"), C("salary", "Salary", "money"), C("hire_date"), C("status")], { file: "dq_" + c.check_id, height: 300 })
+    : `<p class="ok">لا توجد سجلات متأثرة.</p>`;
+  return h + `</div>`;
+}
+
+/* ---------------------------------------------------------------- simulator */
+const ACT_AR = { merge_departments: "دمج إدارات", remove_layer: "إزالة طبقة إدارية", move_employee: "نقل موظف", remove_manager: "إزالة مدير" };
+function describe(a) {
+  if (a.type === "merge_departments") return `دمج ${a.departments.join(" + ")} ← ${a.new_name}${a.consolidate_heads ? " (توحيد القيادة)" : ""}`;
+  if (a.type === "remove_layer") return `إزالة المديرين في Job Level ${a.job_level} (${X.LEVEL_NAMES[a.job_level]})${a.department ? " في " + a.department : " في كل المنظمة"}`;
+  if (a.type === "move_employee") return `نقل ${a.employee_id} إلى المدير ${a.new_manager_id}${a.move_department ? " مع نقل الإدارة" : ""}`;
+  return `إزالة المدير ${a.manager_id} ← المستلم: ${a.reassign_to}`;
+}
+function pageSimulator() {
+  const m = S.model, act = m.recs.filter((r) => r.is_active), heads = X.departmentHeads(m), depts = Object.keys(heads).sort();
+  const tab = S.sel.simTab || "merge_departments";
+  const lab = (r) => `${r.node_id} · ${r.employee_name} · ${r.job_title} · ${r.department}`;
+  let h = head("محاكي ماذا لو", "What-If Simulator", "جرّب تغييرات افتراضية على نسخة من البيانات وقارن النتائج قبل التطبيق الفعلي. البيانات الأصلية لا تتغير، والمحاكاة تعمل على كامل المنظمة.");
+  h += `<div class="tabs">${Object.entries(ACT_AR).map(([k, l]) => `<button data-st="${k}" aria-selected="${k === tab}">${l}</button>`).join("")}</div><div class="panel">`;
+  after(() => document.querySelectorAll("[data-st]").forEach((b) => (b.onclick = () => { S.sel.simTab = b.dataset.st; render(); })));
+  const empOpts = (sel, list = act) => list.map((r) => `<option value="${esc(r.node_id)}" ${r.node_id === sel ? "selected" : ""}>${esc(lab(r))}</option>`).join("");
+  if (tab === "merge_departments") {
+    h += `<div class="formgrid"><label>الإدارة الأساسية<select id="mg1">${depts.map((d) => `<option ${d === (S.sel.mg1 || "HRIS") ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+      <label>الإدارة المدموجة<select id="mg2">${depts.map((d) => `<option ${d === (S.sel.mg2 || "HR Operations") ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></label>
+      <label>اسم الإدارة الجديدة<input type="text" id="mgn" value="${esc(S.sel.mgn || "")}" placeholder="مثال: HR Operations & HRIS"></label>
+      <label><span><input type="checkbox" id="mgc" ${S.sel.mgc ? "checked" : ""}> توحيد القيادة: نقل فريق رئيس الإدارة المدموجة إلى رئيس الإدارة الأساسية وحذف وظيفته</span></label></div>`;
+    after(() => { ["mg1", "mg2", "mgn"].forEach((k) => ($("#" + k).onchange = (e) => (S.sel[k] = e.target.value))); $("#mgc").onchange = (e) => (S.sel.mgc = e.target.checked);
+      $("#add").onclick = () => { const a = $("#mg1").value, b = $("#mg2").value; if (a === b) return toast("اختر إدارتين مختلفتين.");
+        addAction({ type: "merge_departments", departments: [a, b], new_name: $("#mgn").value.trim() || `${a} & ${b}`, consolidate_heads: $("#mgc").checked }); }; });
+  } else if (tab === "remove_layer") {
+    const lv = S.sel.ly ?? 4, dep = S.sel.lyd || "";
+    const tg = act.filter((r) => r.isMgr && r.job_level === lv && (!dep || r.department === dep));
+    h += `<div class="formgrid"><label>Job Level<select id="lyl">${[1, 2, 3, 4, 5].map((l) => `<option value="${l}" ${l === lv ? "selected" : ""}>${l} · ${X.LEVEL_NAMES[l]}</option>`).join("")}</select></label>
+      <label>النطاق<select id="lyd"><option value="">كل المنظمة</option>${depts.map((d) => `<option ${d === dep ? "selected" : ""}>${esc(d)}</option>`).join("")}</select></label></div>
+      <p class="note">سيتم حذف ${tg.length} وظيفة إشرافية، ونقل ${X.sum(tg.map((r) => r.direct))} موظف و${X.sum(tg.map((r) => r.vacDirect))} وظيفة شاغرة إلى المدير الأعلى التالي في سلسلتهم.</p>`;
+    after(() => { $("#lyl").onchange = (e) => { S.sel.ly = +e.target.value; render(); }; $("#lyd").onchange = (e) => { S.sel.lyd = e.target.value; render(); };
+      $("#add").onclick = () => { if (!tg.length) return toast("لا يوجد مديرون في هذه الطبقة/الإدارة."); addAction({ type: "remove_layer", job_level: lv, department: dep || null }); }; });
+  } else if (tab === "move_employee") {
+    const sorted = [...act].sort((a, b) => (a.node_id < b.node_id ? -1 : 1));
+    const emp = S.sel.mve && m.byId.has(S.sel.mve) ? S.sel.mve : sorted[0].node_id, cur = m.byId.get(emp);
+    const mgrs = act.filter((r) => r.isMgr && r.node_id !== emp).sort((a, b) => (a.node_id < b.node_id ? -1 : 1));
+    h += `<div class="formgrid"><label>الموظف<select id="mve">${empOpts(emp, sorted)}</select></label>
+      <label>المدير الجديد<select id="mvm">${empOpts(S.sel.mvm, mgrs)}</select></label>
+      <label><span><input type="checkbox" id="mvd" checked> نقل الموظف إلى إدارة المدير الجديد</span></label></div>
+      <p class="note">المدير الحالي: <span class="mono">${esc(cur.manager_id || "—")}</span> ${esc(cur.manager_name || "")}</p>`;
+    after(() => { $("#mve").onchange = (e) => { S.sel.mve = e.target.value; render(); }; $("#mvm").onchange = (e) => (S.sel.mvm = e.target.value);
+      $("#add").onclick = () => addAction({ type: "move_employee", employee_id: $("#mve").value, new_manager_id: $("#mvm").value, move_department: $("#mvd").checked }); });
+  } else {
+    const mgrs = act.filter((r) => r.isMgr && r.node_id !== m.ceo).sort((a, b) => a.direct - b.direct);
+    const mid = S.sel.rmm && m.byId.has(S.sel.rmm) ? S.sel.rmm : mgrs[0].node_id, mr = m.byId.get(mid), hd = heads[mr.department];
+    const choice = S.sel.rmc || "manager_of_removed";
+    const directs = X.directIds(m, mid).map((x) => m.byId.get(x));
+    h += `<div class="formgrid"><label>المدير المراد إزالته<select id="rmm">${empOpts(mid, mgrs)}</select></label>
+      <label>من سيستلم الموظفين؟<select id="rmc"><option value="manager_of_removed" ${choice === "manager_of_removed" ? "selected" : ""}>المدير الأعلى (${esc(mr.manager_id)})</option>
+        <option value="department_head" ${choice === "department_head" ? "selected" : ""}>رئيس الإدارة (${esc(hd)})</option><option value="specific" ${choice === "specific" ? "selected" : ""}>مدير آخر / ترقية أحد الموظفين المباشرين</option></select></label>
+      ${choice === "specific" ? `<label>المستلم (الموظفون المباشرون أولًا = ترقية)<select id="rmt">${empOpts(S.sel.rmt, [...directs, ...act.filter((r) => r.node_id !== mid && !directs.includes(r) && r.isMgr)])}</select></label>` : ""}</div>
+      <p class="note">لديه ${mr.direct} موظف مباشر · مديره: <span class="mono">${esc(mr.manager_id)}</span> · رئيس الإدارة: <span class="mono">${esc(hd)}</span></p>`;
+    after(() => { $("#rmm").onchange = (e) => { S.sel.rmm = e.target.value; render(); }; $("#rmc").onchange = (e) => { S.sel.rmc = e.target.value; render(); };
+      if ($("#rmt")) $("#rmt").onchange = (e) => (S.sel.rmt = e.target.value);
+      $("#add").onclick = () => addAction({ type: "remove_manager", manager_id: mid, reassign_to: choice === "specific" ? $("#rmt").value : choice }); });
+  }
+  h += `<div style="margin-top:12px"><button class="btn primary" id="add">＋ أضف إلى السيناريو</button></div></div>`;
+  h += `<h2>السيناريو</h2>`;
+  if (!S.scenario.length) return h + `<p class="note">أضف إجراءً واحدًا أو أكثر لبدء المحاكاة. يمكن جمع عدة إجراءات في سيناريو واحد وستُطبق بالترتيب.</p>`;
+  h += `<div class="scen">${S.scenario.map((a, i) => `<div><b>${i + 1}.</b><span>${esc(describe(a))}</span><button class="btn sm" data-del="${i}">حذف</button></div>`).join("")}</div><button class="btn sm" id="sclr">مسح السيناريو</button>`;
+  after(() => { document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { S.scenario.splice(+b.dataset.del, 1); S.sim = null; render(); }));
+    $("#sclr").onclick = () => { S.scenario = []; S.sim = null; render(); }; });
+  const key = JSON.stringify(S.scenario) + JSON.stringify(S.settings);
+  if (!S.sim || S.simKey !== key) {
+    try { const res = X.applyScenario(m, S.scenario); S.sim = { res, cmp: X.compare(m, res.model, S.settings), fa: X.detectFindings(res.model, S.settings) }; S.simKey = key; }
+    catch (e) { if (!(e instanceof X.SimError)) console.error(e); S.sim = null; return h + `<p class="err" style="margin-top:12px">تعذر تطبيق السيناريو: ${esc(e.message)}</p>`; }
+  }
+  const { res, cmp, fa } = S.sim;
+  h += `<div class="note" style="margin-top:8px">${res.log.map(esc).join("<br>")}</div>`;
+  h += `<h2>Before / After</h2><div class="grid2"><div>${table(cmp.summary.map((r) => ({ ...r, d: r.before === r.after ? "" : "●" })), [C("metric", "Metric"), C("before", "BEFORE"), C("after", "AFTER"), C("d", "Δ")], { file: "scenario_before_after", height: 520 })}</div>
+    <div class="panel"><h3>ما الذي تغير؟</h3>${cmp.lines.length ? `<div class="lines">${cmp.lines.slice(0, 45).map(esc).join("<br>")}</div>${cmp.lines.length > 45 ? `<p class="note">… و${cmp.lines.length - 45} تغييرات أخرى في الجداول أدناه.</p>` : ""}` : `<p class="note">لا توجد تغييرات في المؤشرات.</p>`}</div></div>`;
+  const last = S.scenario[S.scenario.length - 1];
+  if (last.type === "move_employee") {
+    const b = m.byId.get(last.employee_id), a = res.model.byId.get(last.employee_id), om = b.manager_id;
+    const sp = (mm, id) => (mm.byId.get(id) ? mm.byId.get(id).direct : "—");
+    h += `<h2>أثر نقل الموظف</h2><div class="kpis">${kpi("Span المدير الحالي", `${sp(m, om)} → ${sp(res.model, om)}`, esc(om))}${kpi("Span المدير الجديد", `${sp(m, last.new_manager_id)} → ${sp(res.model, last.new_manager_id)}`, esc(last.new_manager_id))}
+      ${kpi("Depth الموظف", `${b.depth ?? "—"} → ${a?.depth ?? "—"}`)}${kpi("الإدارة", esc(`${b.department} → ${a?.department}`))}</div>`;
+  }
+  const fb = X.groupBy(S.findings, (f) => f.type), fA = X.groupBy(fa, (f) => f.type);
+  const fRows = X.FINDING_TYPES.map((t) => ({ t, b: (fb.get(t) || []).length, a: (fA.get(t) || []).length })).map((r) => ({ ...r, d: r.a - r.b }));
+  h += `<h2>التفاصيل</h2><div class="grid2"><div><h3>Span of Control (${cmp.spans.length})</h3>${table(cmp.spans, [C("node_id", "Manager", "mono"), C("employee_name"), C("job_title"), C("department"), C("span_before", "Before", "n"), C("span_after", "After", "n"), C("change", "Change")], { file: "scenario_spans", height: 300 })}</div>
+    <div><h3>Findings قبل وبعد</h3>${table(fRows, [C("t", "Finding Type"), C("b", "Before", "n"), C("a", "After", "n"), C("d", "Change", "n")], { file: "scenario_findings", height: 300 })}</div></div>
+    <h3 style="margin-top:14px">الإدارات (${cmp.deptChanges.length})</h3>${table(cmp.deptChanges, [C("department"), C("headcount_before", "HC Before", "n"), C("headcount_after", "HC After", "n"), C("managers_before", "Mgr Before", "n"), C("managers_after", "Mgr After", "n"),
+      C("management_ratio_before", "Ratio Before", "pct"), C("management_ratio_after", "Ratio After", "pct"), C("layers_before", "Layers Before", "n"), C("layers_after", "Layers After", "n"), C("avg_span_before", "Span Before", "n"), C("avg_span_after", "Span After", "n")], { file: "scenario_departments", height: 300 })}
+    <h3 style="margin-top:14px">Organizational Depth (${cmp.depth.length} موظف تغير عمقهم)</h3>${table(cmp.depth, [C("node_id", "ID", "mono"), C("employee_name"), C("department"), C("depth_before", "Before", "n"), C("depth_after", "After", "n")], { file: "scenario_depth", height: 260 })}`;
+  return h;
+}
+function addAction(a) { S.scenario.push(a); S.sim = null; render(); }
+
+/* ---------------------------------------------------------------- import / export / settings */
+function pageImport() {
+  let h = head("استيراد البيانات", "Import Data", "ارفع ملف CSV أو Excel لبيانات منظمتك، أو أنشئ بيانات وهمية بأحجام مختلفة. كل المعالجة تتم داخل المتصفح ولا تُرسل البيانات لأي مكان.");
+  h += `<p><b>البيانات الحالية:</b> ${esc(S.source)}</p>`;
+  h += `<div class="grid2"><div class="panel"><h3>رفع ملف</h3><p class="note">الحقول الأساسية: <span class="mono">EmployeeID, EmployeeName, ManagerID, JobTitle, Department, Division, BusinessUnit, JobLevel, Salary, EmploymentStatus, PositionID, PositionStatus</span>. أسماء الأعمدة الشائعة تُطابق تلقائيًا. الوظيفة الشاغرة = صف بدون EmployeeID مع PositionStatus = Vacant.</p>
+    <div class="drop" id="drop"><p>اسحب الملف هنا أو</p><input type="file" id="file" accept=".csv,.xlsx,.xlsm,.xls"></div>
+    <div style="margin-top:8px"><button class="btn sm" id="tmpl">⬇ قالب CSV</button></div><div id="imp-res"></div></div>
+    <div class="panel"><h3>بيانات وهمية (Dummy Data)</h3><p class="note">يُبنى الهيكل أولًا، ثم يُوزَّع الموظفون عليه، ثم تُضاف مشكلات تنظيمية متعمدة يستطيع النظام اكتشافها.</p>
+    <div class="formgrid"><label>عدد الموظفين التقريبي<select id="gn">${[1500, 3000, 5000, 10000].map((n) => `<option ${n === 1500 ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+    <label>Seed<input type="number" id="gs" value="42"></label></div><div style="margin-top:10px"><button class="btn primary" id="gen">إنشاء البيانات</button> <button class="btn" id="dlraw">⬇ البيانات الحالية CSV</button></div></div></div>`;
+  if (S.manifest) h += `<h2>المشكلات المُدخلة عمدًا في البيانات الوهمية</h2><p class="sub">النتيجة المتوقعة لكل مشكلة؛ كلها تظهر في صفحة الملاحظات أو جودة البيانات.</p>${table(S.manifest.map((x) => ({ ...x, ids: x.ids.slice(0, 8).join(", ") + (x.ids.length > 8 ? " …" : "") })), [C("issue", "Issue"), C("expected_finding", "Expected Finding"), C("department"), C("ids", "IDs", "wrap"), C("detail", "Detail")], { file: "injected_issues" })}`;
+  after(() => {
+    $("#gen").onclick = () => { const n = +$("#gn").value, sd = +$("#gs").value || 42; const { rows, manifest } = X.generateOrg(n, sd);
+      setData(rows, `بيانات وهمية · ~${n.toLocaleString("en-US")} موظف · seed ${sd}`, manifest); renderRail(); location.hash = "#dashboard"; render(); };
+    $("#dlraw").onclick = () => download("org_data.csv", toCSV(S.raw, Object.keys(S.raw[0] || {}).map((k) => ({ k, label: k }))), "text/csv;charset=utf-8");
+    $("#tmpl").onclick = () => download("org_xray_template.csv", "﻿EmployeeID,EmployeeName,ManagerID,JobTitle,Department,Division,BusinessUnit,JobLevel,Salary,EmploymentStatus,PositionID,PositionStatus,Location,Gender,Age,HireDate,Grade,EmploymentType,WorkArrangement,PerformanceRating,YearsOfService\n", "text/csv");
+    const drop = $("#drop");
+    ["dragover", "dragenter"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
+    drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); });
+    $("#file").onchange = (e) => e.target.files[0] && readFile(e.target.files[0]);
+  });
+  return h;
+}
+function parseCSV(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  const delim = (text.split("\n")[0].match(/;/g) || []).length > (text.split("\n")[0].match(/,/g) || []).length ? ";" : ",";
+  for (let i = 0; i < text.length; i++) { const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+    else if (ch === '"') q = true; else if (ch === delim) { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += ch; }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const hdr = (rows.shift() || []).map((x) => x.replace(/^﻿/, "").trim());
+  return rows.filter((r) => r.some((x) => x.trim() !== "")).map((r) => Object.fromEntries(hdr.map((h, i) => [h, r[i] ?? ""])));
+}
+function readFile(file) {
+  const out = $("#imp-res"); out.innerHTML = `<p class="note">جاري القراءة…</p>`;
+  const done = (rows) => {
+    const rep = X.validateImport(rows);
+    let h = `<h3 style="margin-top:12px">نتيجة التحقق — ${nf(rows.length)} سجل</h3><div id="valtab"></div>`;
+    h += rep.ok ? `<button class="btn primary" id="useimp">تحميل البيانات للتحليل</button>` : `<p class="err">لا يمكن تحليل الملف قبل معالجة الأخطاء (Error) أعلاه. العمودان الأساسيان: EmployeeID و ManagerID.</p>`;
+    out.innerHTML = h;
+    afterQ = []; tableSeq = 100; $("#valtab").innerHTML = table(rep.issues, [C("level", "Level"), C("field", "Field", "mono"), C("message", "Message", "wrap"), C("count", "Count", "n"), C("rows", "Rows (first 20)")], { file: "validation" });
+    afterQ.forEach((f) => f());
+    if (rep.ok) $("#useimp").onclick = () => { setData(rows, `ملف مرفوع · ${file.name} · ${nf(rows.length)} سجل`); renderRail(); location.hash = "#dashboard"; render(); };
+  };
+  const reader = new FileReader();
+  if (/\.(xlsx|xlsm|xls)$/i.test(file.name)) {
+    if (typeof XLSX === "undefined") { out.innerHTML = `<p class="err">قراءة Excel تحتاج اتصالًا بالإنترنت لتحميل مكتبة SheetJS. احفظ الملف بصيغة CSV وأعد المحاولة.</p>`; return; }
+    reader.onload = () => { try { const wb = XLSX.read(reader.result, { type: "array", cellDates: true }); done(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "", raw: false })); }
+      catch (e) { out.innerHTML = `<p class="err">تعذر قراءة الملف: ${esc(e.message)}</p>`; } };
+    reader.readAsArrayBuffer(file);
+  } else { reader.onload = () => { try { done(parseCSV(String(reader.result))); } catch (e) { out.innerHTML = `<p class="err">تعذر قراءة الملف: ${esc(e.message)}</p>`; } }; reader.readAsText(file, "utf-8"); }
+}
+function exportSheets(useFilters) {
+  const v = view(), recs = useFilters ? v.recs : S.model.recs, fs = useFilters ? v.findings : S.findings, s = S.settings;
+  const emp = recs.map((r) => Object.fromEntries([["node_id", r.node_id], ...X.COLUMNS.map((c) => [c, r[c]]), ["reporting_status", r.status], ["depth", r.depth], ["direct_reports", r.direct], ["vacant_direct", r.vacDirect], ["total_reports", r.total], ["is_manager", r.isMgr]]));
+  const mg = recs.filter((r) => r.isMgr).map((r) => ({ manager_id: r.node_id, name: r.employee_name, job_title: r.job_title, job_level: r.job_level, department: r.department, depth: r.depth, direct_reports: r.direct, vacant_direct: r.vacDirect, total_reports: r.total, span_category: X.spanCat(r.direct, s) }));
+  const st = X.spanStats(recs.filter((r) => r.isMgr).map((r) => r.direct));
+  return { Employees: emp, Managers: mg, Departments: X.unitMetrics(recs, "department", s),
+    Findings: fs.map(({ related, ...f }) => ({ ...f, related_ids: related.slice(0, 50).join(", ") })),
+    "Span of Control": Object.entries(st).map(([k, v]) => ({ statistic: k, value: v })),
+    "Organizational Layers": [...X.layerMetrics(recs, "job_level").map((l) => ({ basis: "Job Level", ...l })), ...X.layerMetrics(recs, "depth").map((l) => ({ basis: "Structural Depth", ...l }))],
+    "Data Quality": dq().map(({ failing, ...c }) => c) };
+}
+function pageExport() {
+  const v = view();
+  let h = head("التصدير", "Export", "ملف Excel واحد بالأوراق: Employees، Managers، Departments، Findings، Span of Control، Organizational Layers، Data Quality — أو أي جدول بصيغة CSV.");
+  const sheets = exportSheets(v.filtered && S.sel.expF !== false);
+  h += v.filtered ? `<p><label><input type="checkbox" id="expf" ${S.sel.expF !== false ? "checked" : ""}> تطبيق الفلاتر العامة على التصدير</label></p>` : "";
+  h += `<div class="kpis">${Object.entries(sheets).map(([k, rows]) => kpi(k, nf(rows.length), "صف")).join("")}</div>
+    <div style="margin:14px 0"><button class="btn primary" id="xls">⬇ Excel (organizational_xray.xlsx)</button></div>
+    <p class="note">التحميل يعمل عند فتح الملف من جهازك. إذا لم يبدأ التحميل في بيئتك، استخدم زر «نسخ CSV» تحت أي جدول ثم الصقه في Excel.</p>`;
+  const pick = S.sel.expSheet || "Findings";
+  h += `<h2>CSV</h2><div class="toolbar"><label>الجدول<select id="exs2">${Object.keys(sheets).map((k) => `<option ${k === pick ? "selected" : ""}>${k}</option>`).join("")}</select></label></div>`;
+  const rows = sheets[pick], cols = Object.keys(rows[0] || {}).map((k) => ({ k, label: k, t: typeof rows[0][k] === "number" ? "n" : k === "description" || k === "evidence" ? "wrap" : undefined }));
+  h += table(rows, cols, { file: pick.toLowerCase().replace(/ /g, "_"), height: 380, max: 500 });
+  after(() => {
+    if ($("#expf")) $("#expf").onchange = (e) => { S.sel.expF = e.target.checked; render(); };
+    $("#exs2").onchange = (e) => { S.sel.expSheet = e.target.value; render(); };
+    $("#xls").onclick = () => {
+      if (typeof XLSX === "undefined") return toast("تصدير Excel يحتاج اتصالًا بالإنترنت (مكتبة SheetJS). استخدم CSV.");
+      const wb = XLSX.utils.book_new();
+      for (const [k, r] of Object.entries(sheets)) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(r.length ? r : [{}]), k.slice(0, 31));
+      try { XLSX.writeFile(wb, "organizational_xray.xlsx"); } catch (e) { toast("تعذر التحميل في هذه البيئة."); }
+    };
+  });
+  return h;
+}
+function pageSettings() {
+  const s = S.settings, d = X.DEFAULT_SETTINGS;
+  let h = head("الإعدادات", "Settings", "حدود التحليل (Thresholds). تُطبق فورًا على كل الصفحات والملاحظات، وتُحفظ في هذا المتصفح.");
+  const F = [["low", "Low Span Threshold", "مدير لديه عدد موظفين مباشرين أقل من أو يساوي هذا الحد", 0, 50, 1],
+    ["high", "High Span Threshold", "مدير لديه عدد موظفين مباشرين أكبر من هذا الحد", 1, 200, 1],
+    ["deep", "Deep Hierarchy Threshold", "عمق (عدد العلاقات حتى الـCEO) أكبر من هذا الحد", 1, 30, 1],
+    ["small", "Small Department Threshold", "إدارة عدد موظفيها أقل من أو يساوي هذا الحد", 0, 100, 1],
+    ["ratio", "High Management Ratio (%)", "نسبة المديرين إلى موظفي الإدارة أكبر من هذا الحد", 1, 100, 1],
+    ["similarity", "Title Similarity (0–1)", "حد التشابه النصي بين المسميات الوظيفية", 0.5, 1, 0.01],
+    ["maxNodes", "Max network nodes", "الحد الأقصى للعقد في الخريطة التنظيمية", 50, 5000, 50]];
+  h += `<form id="sf" class="panel"><div class="formgrid">${F.map(([k, l, help, mn, mx, st]) => `<label>${l}<input type="number" id="s-${k}" min="${mn}" max="${mx}" step="${st}" value="${k === "ratio" ? Math.round(s[k] * 100) : s[k]}"><span class="note">${help}</span></label>`).join("")}
+    <label><span><input type="checkbox" id="s-excludeExec" ${s.excludeExec ? "checked" : ""}> استثناء CEO و C-Suite من ملاحظات Span of Control</span></label></div>
+    <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">حفظ الإعدادات</button><button class="btn" type="button" id="sreset">استعادة القيم الافتراضية</button></div><div id="smsg"></div></form>`;
+  h += `<h2>القواعد الحالية</h2>${table([["LOW_SPAN_OF_CONTROL", `direct reports ≤ ${s.low}`], ["HIGH_SPAN_OF_CONTROL", `direct reports > ${s.high}`], ["DEEP_HIERARCHY", `depth to CEO > ${s.deep}`],
+    ["SMALL_DEPARTMENT", `headcount ≤ ${s.small}`], ["HIGH_MANAGEMENT_RATIO", `managers ÷ headcount > ${X.pct(s.ratio, 0)} (departments larger than ${s.small})`],
+    ["DUPLICATE_POSITION", `duplicate Position ID, title variants, similarity ≥ ${s.similarity}`]].map(([f, r]) => ({ f, r })), [C("f", "Finding"), C("r", "Rule")], { file: "rules" })}
+    <p class="note">القيم الافتراضية: Low ${d.low} · High ${d.high} · Deep ${d.deep} · Small ${d.small} · Ratio ${X.pct(d.ratio, 0)} · Similarity ${d.similarity}</p>`;
+  after(() => {
+    $("#sf").onsubmit = (e) => { e.preventDefault();
+      const nv = { ...s }; for (const [k] of F) { const val = Number($("#s-" + k).value); if (Number.isFinite(val)) nv[k] = k === "ratio" ? val / 100 : val; }
+      nv.excludeExec = $("#s-excludeExec").checked;
+      if (nv.low >= nv.high) { $("#smsg").innerHTML = `<p class="err">يجب أن يكون Low Span Threshold أقل من High Span Threshold.</p>`; return; }
+      S.settings = nv; try { localStorage.setItem("xr-settings", JSON.stringify(nv)); } catch (err) { /* ignore */ }
+      recompute(); render(); $("#smsg").innerHTML = `<p class="ok">تم حفظ الإعدادات وإعادة حساب النتائج (${S.findings.length} ملاحظة).</p>`; };
+    $("#sreset").onclick = () => { S.settings = { ...X.DEFAULT_SETTINGS }; try { localStorage.removeItem("xr-settings"); } catch (err) { /* ignore */ } recompute(); render(); };
+  });
+  return h;
+}
+
+/* ---------------------------------------------------------------- boot */
+function boot() {
+  document.body.appendChild(tipEl);
+  const { rows, manifest } = X.generateOrg(1500, 42);
+  setData(rows, "بيانات وهمية · ~1,500 موظف · seed 42", manifest);
+  renderRail(); render();
+  addEventListener("hashchange", () => { render(); scrollTo(0, 0); });
+}
+boot();
+
+</script>
+
+</body></html>

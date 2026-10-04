@@ -1,5 +1,6 @@
 > **جديد: [Organizational X-Ray](organizational_xray/README.md)** — نظام لتحليل الهيكل التنظيمي (Layers، Span of Control، Findings، What-If Simulator).
-> البرنامج كله في ملف واحد `organizational_xray/app.py` — التشغيل: `cd organizational_xray && python app.py` (أو `streamlit run app.py`)
+> **أسهل طريقة:** افتح `organizational_xray/organizational_xray.html` بالضغط عليه مرتين — يعمل في المتصفح مباشرة بدون أي تثبيت.
+> نسخة Python: البرنامج كله في ملف واحد `organizational_xray/app.py` — التشغيل: `cd organizational_xray && python app.py` (أو `streamlit run app.py`)
 
 # 👥 لوحة معلومات الموارد البشرية (Python + Streamlit)
 
