@@ -3,3 +3,6 @@ __pycache__/
 .venv/
 venv/
 hr_data.csv
+mizan_data/
+mizan_csv/
+.pytest_cache/
