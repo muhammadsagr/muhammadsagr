@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ميزان لتحليل المخاطر</title>
+<meta name="description" content="ميزان: تحليل الأسعار والعوائد، ومحاكاة التهرب الضريبي، وكشف الاحتيال المالي على بيانات مُولَّدة.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Readex+Pro:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--CONTENT-->
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 4v24M9 28h14M6 9h20"/><path d="M6 9l-4 9a4 4 0 0 0 8 0z"/><path d="M26 9l-4 9a4 4 0 0 0 8 0z"/>
+      </svg>
+      <h1>ميزان<small>منصة تحليل المخاطر</small></h1>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="أقسام ميزان">
+      <button role="tab" id="tab-prices" aria-controls="view-prices" aria-selected="true">الأسعار والعوائد</button>
+      <button role="tab" id="tab-tax" aria-controls="view-tax" aria-selected="false">التهرب الضريبي</button>
+      <button role="tab" id="tab-fraud" aria-controls="view-fraud" aria-selected="false">كشف الاحتيال</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ======================================================= الأسعار -->
+  <section class="view" id="view-prices" role="tabpanel" aria-labelledby="tab-prices">
+    <div class="intro">
+      <h2>الأسعار والعوائد</h2>
+      <p>قارن أداء الأصول ومخاطرها: النمو، والتراجع عن القمة، والتذبذب، والارتباط بينها.</p>
+    </div>
+    <p class="notice"><b>بيانات تجريبية</b><span>الأسعار هنا مُولَّدة للتعلّم وليست أسعار سوق حقيقية. ميزان أداة تحليل وليس نصيحة استثمارية.</span></p>
+    <div class="controls">
+      <div class="ctl" style="grid-column: 1 / -1">
+        <span class="lab">الأصول</span>
+        <div class="chips" id="p-assets"></div>
+      </div>
+      <div class="ctl">
+        <span class="lab">الفترة</span>
+        <div class="seg" id="p-period">
+          <button type="button" data-y="1" aria-pressed="false">سنة</button>
+          <button type="button" data-y="3" aria-pressed="true">3 سنوات</button>
+          <button type="button" data-y="5" aria-pressed="false">5 سنوات</button>
+          <button type="button" data-y="0" aria-pressed="false">الكل</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="p-window">نافذة التذبذب المتحرك <output id="p-window-out">21 يوماً</output></label>
+        <input type="range" id="p-window" min="10" max="126" step="1" value="21">
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h3>الملخص</h3><p class="caption">العائد السنوي المركب والتذبذب محسوبان على 252 يوم تداول. نسبة شارب تفترض عائداً خالياً من المخاطر = 0.</p></div></div>
+      <div class="table-wrap"><table id="p-summary"></table></div>
+    </div>
+    <div class="grid">
+      <div class="panel wide">
+        <div class="panel-head"><div><h3>نمو 100 وحدة مستثمرة في بداية الفترة</h3></div><ul class="legend" id="p-legend"></ul></div>
+        <div class="chart" id="p-growth"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>التراجع عن أعلى قمة سابقة</h3><p class="caption">كم انخفض الأصل عن أعلى سعر وصل إليه قبل ذلك.</p></div></div>
+        <div class="chart" id="p-dd"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3 id="p-vol-title">التذبذب السنوي المتحرك</h3><p class="caption">الانحراف المعياري للعوائد اليومية، محوّلاً إلى نسبة سنوية.</p></div></div>
+        <div class="chart" id="p-vol"></div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-head"><div><h3>ارتباط العوائد اليومية</h3><p class="caption">الارتباط المرتفع يعني أن الأصول تنخفض معاً، أي تنويع أقل. الأزرق سالب، والأحمر موجب.</p></div></div>
+        <div class="chart" id="p-corr"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= التهرب الضريبي -->
+  <section class="view" id="view-tax" role="tabpanel" aria-labelledby="tab-tax" hidden>
+    <div class="intro">
+      <h2>محاكاة التهرب الضريبي</h2>
+      <p>5000 دافع ضرائب، كل واحد يقرر كم يصرّح من دخله. يوازن بين المكسب من الإخفاء، واحتمال التدقيق والغرامة، وكلفته الأخلاقية (نموذج Allingham–Sandmo). مصلحة الضرائب لا ترى الدخل الحقيقي، بل مؤشراً غير دقيق عنه. غيّر السياسة وراقب النتيجة.</p>
+    </div>
+    <form class="controls" id="t-form">
+      <div class="ctl"><label for="t-rate">نسبة الضريبة <output id="t-rate-out"></output></label><input type="range" id="t-rate" min="0.05" max="0.35" step="0.01" value="0.20"></div>
+      <div class="ctl"><label for="t-pen">الغرامة <output id="t-pen-out"></output></label><input type="range" id="t-pen" min="0" max="4" step="0.25" value="1.5"><span class="hint">مضاعف للضريبة المتهرَّب منها، تُدفع معها</span></div>
+      <div class="ctl"><label for="t-audit">نسبة التدقيق السنوية <output id="t-audit-out"></output></label><input type="range" id="t-audit" min="0.005" max="0.15" step="0.005" value="0.03"></div>
+      <div class="ctl"><label for="t-target">التدقيق الموجّه بالمخاطر <output id="t-target-out"></output></label><input type="range" id="t-target" min="0" max="1" step="0.1" value="0.5"><span class="hint">والباقي عشوائي</span></div>
+      <div class="ctl"><label for="t-det">فعالية التدقيق في الكشف <output id="t-det-out"></output></label><input type="range" id="t-det" min="0.3" max="1" step="0.05" value="0.8"></div>
+      <div class="ctl"><label for="t-noise">ضوضاء بيانات الطرف الثالث <output id="t-noise-out"></output></label><input type="range" id="t-noise" min="0.05" max="1" step="0.05" value="0.35"><span class="hint">كلما قلّت عرفت المصلحة الدخل بدقة أكبر</span></div>
+      <div class="ctl"><label for="t-honest">نسبة الملتزمين دائماً <output id="t-honest-out"></output></label><input type="range" id="t-honest" min="0" max="0.9" step="0.05" value="0.3"></div>
+      <div class="ctl"><label for="t-years">عدد السنوات <output id="t-years-out"></output></label><input type="range" id="t-years" min="3" max="20" step="1" value="10"></div>
+    </form>
+    <div class="kpis" id="t-kpis"></div>
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head"><div><h3>نسبة الدخل المخفي حسب القطاع</h3><p class="caption">الموظفون الذين يبلّغ صاحب العمل عن رواتبهم لا يستطيعون الإخفاء تقريباً. التهرب يتركز حيث لا يوجد طرف ثالث يبلّغ.</p></div></div>
+        <div class="chart" id="t-sector"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>الفجوة الضريبية عبر السنوات</h3><p class="caption">الضريبة غير المصرّح بها ÷ الضريبة المستحقة. تتغير مع تعلّم الناس من تجاربهم وتجارب زملائهم.</p></div></div>
+        <div class="chart" id="t-gap"></div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-head">
+          <div><h3>أي سياسة أفضل؟</h3><p class="caption">الفجوة الضريبية بعد 5 سنوات لكل مزيج من نسبة التدقيق والغرامة، مع بقية الإعدادات كما اخترتها أعلاه. الأغمق = فجوة أكبر.</p></div>
+          <button type="button" class="btn primary" id="t-sweep">تشغيل 25 سيناريو</button>
+        </div>
+        <div class="chart" id="t-heat"><p class="empty">اضغط «تشغيل 25 سيناريو» لمقارنة السياسات.</p></div>
+      </div>
+    </div>
+    <details class="more"><summary>المؤشرات السنوية</summary><div class="table-wrap"><table id="t-table"></table></div></details>
+  </section>
+
+  <!-- ======================================================= الاحتيال -->
+  <section class="view" id="view-fraud" role="tabpanel" aria-labelledby="tab-fraud" hidden>
+    <div class="intro">
+      <h2>كشف الاحتيال المالي</h2>
+      <p>سجل معاملات لـ 750 حساباً على مدى 180 يوماً، حُقنت فيه أنماط احتيال معروفة من أدلة مجموعة العمل المالي (FATF). نعرف الإجابة الصحيحة لكل حساب، فنقيس دقة كل أداة كشف على نصف الحسابات المحجوز للاختبار.</p>
+    </div>
+    <form class="controls" id="f-form">
+      <div class="ctl"><label for="f-camo">مستوى تمويه المحتالين <output id="f-camo-out"></output></label><input type="range" id="f-camo" min="0" max="1" step="0.1" value="0"><span class="hint">0 أنماط صريحة، و1 محتالون يتكيّفون لتفادي القواعد المعروفة</span></div>
+      <div class="ctl"><label for="f-schemes">عدد المخططات من كل نمط <output id="f-schemes-out"></output></label><input type="range" id="f-schemes" min="5" max="30" step="1" value="15"></div>
+      <div class="ctl"><label for="f-seed">البذرة العشوائية</label><input type="number" id="f-seed" min="0" max="999" value="0"><span class="hint">غيّرها لتوليد سجل مختلف</span></div>
+    </form>
+    <div class="kpis" id="f-kpis"></div>
+    <div class="panel">
+      <div class="panel-head"><div><h3>مقارنة أدوات الكشف</h3><p class="caption"><b>الدقة</b>: من بين الحسابات المُعلَّمة، كم منها محتال فعلاً. <b>الاستدعاء</b>: من بين المحتالين، كم منهم كُشف. ارفع التمويه وراقب كيف تنهار القواعد الثابتة بينما يصمد النموذج.</p></div></div>
+      <div class="table-wrap"><table id="f-results"></table></div>
+    </div>
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>قانون بنفورد</h3><p class="caption">في المبالغ الطبيعية يبدأ نحو 30% منها بالرقم 1. المبالغ المختلقة تخالف ذلك.</p></div>
+          <div class="seg" id="f-benford">
+            <button type="button" data-k="legit" aria-pressed="true">السليمة</button>
+            <button type="button" data-k="fake_invoice" aria-pressed="false">الفواتير الوهمية</button>
+            <button type="button" data-k="all" aria-pressed="false">الكل</button>
+          </div>
+        </div>
+        <ul class="legend"><li><span class="sw" style="background:var(--s1)"></span>الملاحظ</li><li><span class="sw" style="background:var(--s2)"></span>المتوقع حسب بنفورد</li></ul>
+        <div class="chart" id="f-benford-chart"></div>
+        <p class="caption" id="f-benford-verdict"></p>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h3>ما الذي تعلّمه النموذج؟</h3><p class="caption">أوزان الخصائص بعد التوحيد. البرتقالي يرفع الاشتباه، والأزرق يخفضه.</p></div></div>
+        <div class="chart" id="f-weights"></div>
+      </div>
+      <div class="panel wide">
+        <div class="panel-head"><div><h3>أعلى الحسابات اشتباهاً حسب النموذج</h3><p class="caption">من حسابات الاختبار فقط، مع الإجابة الصحيحة للمقارنة.</p></div></div>
+        <div class="table-wrap"><table id="f-top"></table></div>
+      </div>
+    </div>
+    <details class="more" id="f-cycles-box"><summary id="f-cycles-sum">الدوائر المغلقة المكتشفة</summary><div class="table-wrap"><table id="f-cycles"></table></div></details>
+  </section>
+</main>
+
+<footer>كل البيانات في ميزان مُولَّدة داخل متصفحك، ولا يُرسل أي شيء إلى خادم. الموقع نسخة HTML/CSS/JavaScript من تطبيق بايثون في المجلد mizan/.</footer>
+<!--/CONTENT-->
+<script src="js/util.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/prices.js"></script>
+<script src="js/tax.js"></script>
+<script src="js/fraud.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
