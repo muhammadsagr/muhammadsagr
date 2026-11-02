@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>أرض ماب | خريطة وكرة أرضية تفاعلية</title>
+  <meta name="description" content="موقع تفاعلي يجمع بين الخرائط ثنائية الأبعاد والكرة الأرضية ثلاثية الأبعاد: بحث، اتجاهات، أماكن قريبة، قياس مسافات، جولات حول العالم والمزيد.">
+  <meta name="theme-color" content="#0b1220">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a73e8'/%3E%3Cpath d='M10 28c8-2 12 4 18 2s6-10 14-8 10 8 12 10M8 40c10-2 14 6 22 4s10-8 20-4' stroke='%2334a853' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet (خريطة ثنائية الأبعاد) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- CesiumJS (كرة أرضية ثلاثية الأبعاد) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Widgets/widgets.css">
+  <script>window.CESIUM_BASE_URL = 'https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/';</script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.121.0/Build/Cesium/Cesium.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- محركا العرض: يعملان معاً ويتبادلان الموقع عند التبديل -->
+  <div id="map2d" class="engine" aria-label="خريطة ثنائية الأبعاد"></div>
+  <div id="map3d" class="engine" aria-label="كرة أرضية ثلاثية الأبعاد"></div>
+
+  <!-- شاشة التحميل -->
+  <div id="splash">
+    <div class="splash-globe"></div>
+    <div class="splash-title">أرض ماب</div>
+    <div class="splash-sub">جاري تحميل العالم…</div>
+  </div>
+
+  <!-- البحث + اللوحة الجانبية -->
+  <aside id="sidebar">
+    <form id="searchBox" class="card search" autocomplete="off" role="search">
+      <button type="button" class="icon-btn" id="menuBtn" title="القائمة" aria-label="القائمة">
+        <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+      <input id="searchInput" type="search" placeholder="ابحث عن مكان، مدينة، عنوان أو إحداثيات…" aria-label="بحث">
+      <button type="submit" class="icon-btn" title="بحث" aria-label="بحث">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      </button>
+      <span class="sep"></span>
+      <button type="button" class="icon-btn accent" id="directionsBtn" title="الاتجاهات" aria-label="الاتجاهات">
+        <svg viewBox="0 0 24 24"><path d="M12 2 22 12 12 22 2 12z"/><path d="M9 14v-3h5M12 8l3 3-3 3" /></svg>
+      </button>
+    </form>
+
+    <div id="chips" class="chips" aria-label="أماكن قريبة">
+      <button class="chip" data-cat="restaurant">🍽️ مطاعم</button>
+      <button class="chip" data-cat="cafe">☕ مقاهي</button>
+      <button class="chip" data-cat="hotel">🏨 فنادق</button>
+      <button class="chip" data-cat="fuel">⛽ وقود</button>
+      <button class="chip" data-cat="hospital">🏥 مستشفيات</button>
+      <button class="chip" data-cat="pharmacy">💊 صيدليات</button>
+      <button class="chip" data-cat="mosque">🕌 مساجد</button>
+      <button class="chip" data-cat="atm">🏧 صرّاف</button>
+      <button class="chip" data-cat="park">🌳 حدائق</button>
+      <button class="chip" data-cat="museum">🏛️ متاحف</button>
+    </div>
+
+    <section id="panel" class="card panel" hidden>
+      <header class="panel-head">
+        <button class="icon-btn" id="panelBack" title="رجوع" aria-label="رجوع" hidden>
+          <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <h2 id="panelTitle"></h2>
+        <button class="icon-btn" id="panelClose" title="إغلاق" aria-label="إغلاق">
+          <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <div id="panelBody" class="panel-body"></div>
+    </section>
+  </aside>
+
+  <!-- القائمة الجانبية -->
+  <div id="drawerBackdrop" hidden></div>
+  <nav id="drawer" aria-label="القائمة الرئيسية" hidden>
+    <div class="drawer-head">
+      <div class="logo"><span class="logo-dot"></span> أرض ماب</div>
+      <div class="muted small">خريطة + كرة أرضية في مكان واحد</div>
+    </div>
+    <button class="drawer-item" data-open="saved">⭐ أماكني المحفوظة</button>
+    <button class="drawer-item" data-open="tour">✈️ جولات حول العالم</button>
+    <button class="drawer-item" data-open="directions">🧭 الاتجاهات</button>
+    <button class="drawer-item" data-open="measure">📏 قياس مسافة ومساحة</button>
+    <button class="drawer-item" data-open="share">🔗 مشاركة العرض الحالي</button>
+    <button class="drawer-item" data-open="snapshot">📸 حفظ صورة للكرة الأرضية</button>
+    <hr>
+    <button class="drawer-item" data-open="settings">⚙️ الإعدادات والطبقات ثلاثية الأبعاد</button>
+    <button class="drawer-item" data-open="help">⌨️ التحكم والاختصارات</button>
+  </nav>
+
+  <!-- مبدّل الوضع -->
+  <div id="modeSwitch" class="card segmented" role="tablist">
+    <button data-mode="2d" role="tab">🗺️ خريطة</button>
+    <button data-mode="3d" role="tab">🌍 الأرض</button>
+  </div>
+
+  <!-- أدوات التحكم -->
+  <div id="controls">
+    <div class="card ctl-group">
+      <button class="ctl" id="compassBtn" title="اتجاه الشمال (N)" aria-label="اتجاه الشمال">
+        <svg viewBox="0 0 24 24" id="compassIcon"><path d="M12 3 15 12H9z" class="north"/><path d="M12 21 9 12h6z" class="south"/></svg>
+      </button>
+      <button class="ctl only3d" id="tiltBtn" title="إمالة المنظر (T)" aria-label="إمالة">
+        <span class="ctl-text">3D</span>
+      </button>
+      <button class="ctl only3d" id="streetBtn" title="منظر على مستوى الشارع" aria-label="منظر الشارع">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M8 11h8M10 21l2-6 2 6"/></svg>
+      </button>
+      <button class="ctl only3d" id="spinBtn" title="تدوير الكرة الأرضية" aria-label="تدوير">
+        <svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 4v5h-5"/></svg>
+      </button>
+    </div>
+    <div class="card ctl-group">
+      <button class="ctl" id="locateBtn" title="موقعي" aria-label="موقعي">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      </button>
+      <button class="ctl" id="measureBtn" title="قياس" aria-label="قياس">
+        <svg viewBox="0 0 24 24"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>
+      </button>
+      <button class="ctl" id="fullscreenBtn" title="ملء الشاشة" aria-label="ملء الشاشة">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+    <div class="card ctl-group">
+      <button class="ctl" id="zoomIn" title="تكبير" aria-label="تكبير"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="ctl" id="zoomOut" title="تصغير" aria-label="تصغير"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+  </div>
+
+  <!-- اختيار الطبقات -->
+  <div id="layersWrap">
+    <button id="layersBtn" class="layers-thumb" title="الطبقات (L)" aria-label="الطبقات">
+      <span class="thumb" id="layersThumb"></span>
+      <span class="thumb-label">الطبقات</span>
+    </button>
+    <div id="layersPop" class="card layers-pop" hidden>
+      <div class="layers-grid" id="layersGrid"></div>
+      <div class="layers-opts">
+        <label class="switch"><input type="checkbox" id="optLabels" checked><span></span> أسماء الأماكن على القمر الصناعي</label>
+        <label class="switch only3d-opt"><input type="checkbox" id="optLighting"><span></span> الليل والنهار (إضاءة الشمس)</label>
+        <label class="switch only3d-opt"><input type="checkbox" id="optAtmos" checked><span></span> الغلاف الجوي</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- شريط الحالة -->
+  <div id="statusBar" class="card status">
+    <span id="stCoords">—</span>
+    <span class="dot-sep"></span>
+    <span id="stAlt">—</span>
+  </div>
+
+  <!-- لافتة الأداة النشطة -->
+  <div id="toolBanner" class="card tool-banner" hidden>
+    <span id="toolText"></span>
+    <button id="toolDone" class="btn small">تم</button>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/util.js"></script>
+  <script src="js/services.js"></script>
+  <script src="js/engines.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
