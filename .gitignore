@@ -3,3 +3,8 @@ __pycache__/
 .venv/
 venv/
 hr_data.csv
+node_modules/
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars

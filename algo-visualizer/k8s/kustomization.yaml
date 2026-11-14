@@ -1,0 +1,16 @@
+# kubectl apply -k k8s/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: algo-visualizer
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+  - ingress.yaml
+images:
+  - name: ghcr.io/muhammadsagr/algo-visualizer
+    newTag: latest   # CI runs: kustomize edit set image ghcr.io/muhammadsagr/algo-visualizer:<sha>

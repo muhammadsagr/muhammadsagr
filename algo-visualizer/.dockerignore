@@ -1,0 +1,8 @@
+node_modules
+k8s
+terraform
+deploy
+*.md
+.git
+Dockerfile
+docker-compose.yml

@@ -1,5 +1,7 @@
 # 👥 لوحة معلومات الموارد البشرية (Python + Streamlit)
 
+> 🆕 **مشروع جديد في المستودع:** [`algo-visualizer/`](algo-visualizer/README.md): مُصوِّر خوارزميات تفاعلي مع Docker و Kubernetes و Terraform و CI/CD ومراقبة.
+
 > **أسهل طريقة:** افتح الملف `hr_dashboard.html` بالضغط عليه مرتين، فيفتح في المتصفح مباشرة دون تثبيت أي شيء.
 > هو نسخة HTML/CSS/JavaScript من نفس اللوحة.
 

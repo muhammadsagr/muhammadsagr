@@ -1,0 +1,5 @@
+region        = "eu-central-1"
+environment   = "staging"
+image_tag     = "latest"
+min_instances = 1
+max_instances = 5

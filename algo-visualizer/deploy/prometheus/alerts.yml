@@ -1,0 +1,24 @@
+groups:
+  - name: algo-visualizer
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / clamp_min(sum(rate(http_requests_total[5m])), 1e-9) > 0.05
+        for: 5m
+        labels: { severity: page }
+        annotations:
+          summary: More than 5% of requests are failing (SLO burn)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route!="static"}[5m]))) > 0.5
+        for: 10m
+        labels: { severity: ticket }
+        annotations:
+          summary: API p95 latency above 500ms
+      - alert: InstanceDown
+        expr: up{job="algo-visualizer"} == 0
+        for: 1m
+        labels: { severity: page }
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"

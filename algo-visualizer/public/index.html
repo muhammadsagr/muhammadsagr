@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Algo Visualizer · مُصوِّر الخوارزميات</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⟨/⟩</span>
+      <div>
+        <h1>مُصوِّر الخوارزميات</h1>
+        <p>Algorithms × DevOps × Cloud</p>
+      </div>
+    </div>
+    <div class="instance" id="instance" title="أي نسخة (Pod) من الخادم أجابت على الطلب">
+      <span class="dot"></span><span id="instance-text">جارٍ الاتصال بالخادم…</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="sorting">📊 الترتيب</button>
+    <button class="tab" data-tab="pathfinding">🧭 إيجاد المسار</button>
+    <button class="tab" data-tab="pipeline">⚙️ خط CI/CD</button>
+    <button class="tab" data-tab="lb">⚖️ موازنة الأحمال</button>
+    <button class="tab" data-tab="hashing">💍 Consistent Hashing</button>
+    <button class="tab" data-tab="autoscale">📈 Autoscaling</button>
+    <button class="tab" data-tab="benchmark">⏱️ قياس التعقيد</button>
+  </nav>
+
+  <main>
+    <!-- Sorting -->
+    <section class="panel active" id="panel-sorting">
+      <div class="toolbar">
+        <label>الخوارزمية <select id="sort-algo"></select></label>
+        <label>الحجم <input id="sort-size" type="number" min="5" max="100" value="40" /></label>
+        <label>نوع المدخلات
+          <select id="sort-input">
+            <option value="random">عشوائي</option>
+            <option value="sorted">مرتّب</option>
+            <option value="reversed">معكوس</option>
+            <option value="nearly-sorted">شبه مرتّب</option>
+            <option value="few-unique">قيم مكررة</option>
+          </select>
+        </label>
+        <button id="sort-generate" class="primary">توليد وتشغيل</button>
+      </div>
+      <div class="player" data-player="sorting"></div>
+      <div class="stage"><canvas id="sort-canvas" height="320"></canvas></div>
+      <div class="info-grid">
+        <div class="card"><h3>العمليات</h3><div id="sort-stats" class="stats"></div></div>
+        <div class="card"><h3>التعقيد</h3><div id="sort-complexity"></div></div>
+        <div class="card legend">
+          <h3>دليل الألوان</h3>
+          <span class="chip c-compare">مقارنة</span><span class="chip c-swap">تبديل/كتابة</span><span class="chip c-sorted">في مكانه النهائي</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pathfinding -->
+    <section class="panel" id="panel-pathfinding">
+      <div class="toolbar">
+        <label>الخوارزمية <select id="path-algo"></select></label>
+        <label>أداة الرسم
+          <select id="path-tool">
+            <option value="wall">جدار (عقدة معطّلة)</option>
+            <option value="weight">ازدحام (تكلفة 5)</option>
+            <option value="erase">مسح</option>
+            <option value="start">نقطة البداية</option>
+            <option value="end">نقطة النهاية</option>
+          </select>
+        </label>
+        <button id="path-random">شبكة عشوائية</button>
+        <button id="path-clear">مسح</button>
+        <button id="path-run" class="primary">تشغيل</button>
+        <button id="path-compare">مقارنة الكل</button>
+      </div>
+      <div class="player" data-player="pathfinding"></div>
+      <div class="stage"><canvas id="path-canvas" height="420"></canvas></div>
+      <div class="info-grid">
+        <div class="card"><h3>النتيجة</h3><div id="path-stats" class="stats"></div></div>
+        <div class="card"><h3>مقارنة الخوارزميات</h3><div id="path-compare-table"></div></div>
+        <div class="card legend">
+          <h3>ربطها بالسحابة</h3>
+          <p>الشبكة تمثّل شبكة خوادم أو مراكز بيانات: الجدار عقدة معطّلة، والخلية البرتقالية رابط مزدحم. هذا هو مبدأ التوجيه في بروتوكولات مثل OSPF (الذي يستخدم Dijkstra).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline -->
+    <section class="panel" id="panel-pipeline">
+      <div class="toolbar">
+        <button id="pipe-run" class="primary">جدولة الخط</button>
+        <label class="check"><input type="checkbox" id="pipe-cycle" /> أضف اعتمادية دائرية (prod → install)</label>
+      </div>
+      <div class="player" data-player="pipeline"></div>
+      <div class="stage"><svg id="pipe-svg" viewBox="0 0 1100 420"></svg></div>
+      <div class="info-grid">
+        <div class="card"><h3>النتيجة</h3><div id="pipe-stats" class="stats"></div></div>
+        <div class="card"><h3>الفكرة</h3>
+          <p>خط CI/CD عبارة عن <b>DAG</b>. خوارزمية <b>Kahn</b> للترتيب الطوبولوجي تحدّد ترتيب التنفيذ، وكل "مستوى" منها يمكن تشغيله على التوازي. ثم نحسب <b>المسار الحرج</b> (أطول مسار في DAG) باستخدام البرمجة الديناميكية، وهو الذي يحدد أقل زمن ممكن للخط بأكمله.</p>
+        </div>
+        <div class="card legend">
+          <h3>دليل الألوان</h3>
+          <span class="chip c-compare">قيد التنفيذ</span><span class="chip c-sorted">منتهٍ</span><span class="chip c-ready">جاهز (في الطابور)</span><span class="chip c-swap">المسار الحرج / دورة</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Load balancer -->
+    <section class="panel" id="panel-lb">
+      <div class="toolbar">
+        <label>الاستراتيجية <select id="lb-strategy"></select></label>
+        <label>سعة الخوادم <input id="lb-servers" value="1,2,4,2" title="سعة كل خادم مفصولة بفواصل" /></label>
+        <label>عدد الطلبات <input id="lb-count" type="number" min="20" max="2000" value="300" /></label>
+        <button id="lb-run" class="primary">محاكاة</button>
+      </div>
+      <div class="player" data-player="lb"></div>
+      <div class="stage"><canvas id="lb-canvas" height="300"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>مقارنة كل الاستراتيجيات (نفس الطلبات)</h3><div id="lb-table"></div></div>
+        <div class="card"><h3>نموذج المحاكاة</h3>
+          <p>الطلبات تصل بتوزيع ذي ذيل طويل (أغلبها قصير وقليل منها طويل جداً). كل خادم له سعة، وإذا تجاوز عدد الطلبات النشطة سعته يتباطأ. لاحظ الفرق في <b>p99</b> بين Round Robin و Least Connections.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Consistent hashing -->
+    <section class="panel" id="panel-hashing">
+      <div class="toolbar">
+        <label>Virtual nodes <input id="hash-vnodes" type="number" min="1" max="200" value="20" /></label>
+        <label>عدد المفاتيح <input id="hash-keys" type="number" min="10" max="5000" value="400" /></label>
+        <button id="hash-add" class="primary">➕ إضافة خادم</button>
+        <button id="hash-remove">➖ حذف خادم</button>
+        <button id="hash-reset">إعادة ضبط</button>
+      </div>
+      <div class="stage split">
+        <svg id="hash-svg" viewBox="-260 -260 520 520"></svg>
+        <div class="card">
+          <h3>آخر تغيير في العنقود</h3>
+          <div id="hash-stats" class="stats"></div>
+          <h3>توزيع المفاتيح</h3>
+          <div id="hash-dist"></div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="card wide"><h3>الفكرة</h3>
+          <p>مع <code>hash(key) % N</code>، إضافة خادم واحد تنقل معظم المفاتيح (كارثة لذاكرة التخزين المؤقت). أما مع <b>Consistent Hashing</b> فتوضع الخوادم على حلقة، ويذهب كل مفتاح لأول خادم باتجاه عقارب الساعة، فلا ينتقل إلا قرابة <b>1/N</b> من المفاتيح. والعقد الافتراضية (Virtual nodes) تجعل التوزيع متوازناً. البحث في الحلقة يتم بـ <b>Binary Search</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Autoscaling -->
+    <section class="panel" id="panel-autoscale">
+      <div class="toolbar">
+        <label>الهدف لكل Pod (طلب/ث) <input id="hpa-target" type="number" min="5" max="500" value="50" /></label>
+        <label>الحد الأدنى <input id="hpa-min" type="number" min="1" max="10" value="2" /></label>
+        <label>الحد الأقصى <input id="hpa-max" type="number" min="1" max="50" value="12" /></label>
+        <label>نمط الحمل
+          <select id="hpa-pattern">
+            <option value="spike">ارتفاع مفاجئ</option>
+            <option value="daily">دورة يومية</option>
+            <option value="ramp">تصاعد تدريجي</option>
+          </select>
+        </label>
+        <button id="hpa-run" class="primary">محاكاة</button>
+      </div>
+      <div class="stage"><canvas id="hpa-canvas" height="320"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>معادلة Kubernetes HPA</h3>
+          <p><code>desired = ceil(current × currentMetric / targetMetric)</code> مع تجاهل التغيّر داخل هامش 10%، وحصر النتيجة بين الحدين الأدنى والأقصى. لاحظ التأخير بين ارتفاع الحمل وزيادة عدد الـ Pods، ولهذا نحتاج هامشاً في الـ target.</p>
+        </div>
+        <div class="card"><h3>النتيجة</h3><div id="hpa-stats" class="stats"></div></div>
+      </div>
+    </section>
+
+    <!-- Benchmark -->
+    <section class="panel" id="panel-benchmark">
+      <div class="toolbar">
+        <div id="bench-algos" class="checks"></div>
+        <label>المدخلات
+          <select id="bench-input">
+            <option value="random">عشوائي</option>
+            <option value="sorted">مرتّب</option>
+            <option value="reversed">معكوس</option>
+          </select>
+        </label>
+        <label>المقياس
+          <select id="bench-metric">
+            <option value="comparisons">عدد المقارنات</option>
+            <option value="writes">عدد الكتابات</option>
+            <option value="ms">الزمن (ms)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="bench-log" checked /> مقياس لوغاريتمي</label>
+        <button id="bench-run" class="primary">قياس على الخادم</button>
+      </div>
+      <div class="stage"><canvas id="bench-canvas" height="380"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>كيف يعمل؟</h3>
+          <p>يرسل المتصفح طلب <code>GET /api/benchmark</code> لكل خوارزمية، ويشغّلها الخادم على أحجام 50 إلى 1600. عدد العمليات قيمة حتمية تُظهر التعقيد الحقيقي (n² مقابل n log n)، أما الزمن فيعتمد على الجهاز. الخطوط المتقطعة منحنيات مرجعية.</p>
+        </div>
+        <div class="card"><h3>المصدر</h3><div id="bench-source" class="stats"></div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="/metrics" target="_blank">/metrics</a> · <a href="/api/algorithms" target="_blank">/api/algorithms</a> · <a href="/healthz" target="_blank">/healthz</a>
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
