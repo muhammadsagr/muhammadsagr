@@ -1,0 +1,1946 @@
+<!-- GENERATED FILE: edit public/ and src/core/, then run: npm run build:standalone -->
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Algo Visualizer · مُصوِّر الخوارزميات</title>
+  <style>
+:root {
+  --bg: #0f1420;
+  --panel: #171e2e;
+  --card: #1d2538;
+  --border: #2a3450;
+  --text: #e6e9f2;
+  --muted: #8d97b5;
+  --accent: #4f8cff;
+  --compare: #f5c84c;
+  --swap: #ff5d6c;
+  --sorted: #36c98e;
+  --ready: #9b7bff;
+  --bar: #4f8cff;
+  --wall: #3a4566;
+  --weight: #ff9f43;
+  --visited: #2b5ba8;
+  --path: #f5c84c;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+code { background: #0b0f18; padding: 1px 6px; border-radius: 4px; direction: ltr; unicode-bidi: embed; }
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; background: var(--panel); border-bottom: 1px solid var(--border); }
+.brand { display: flex; gap: 12px; align-items: center; }
+.brand h1 { margin: 0; font-size: 20px; }
+.brand p { margin: 0; color: var(--muted); font-size: 12px; direction: ltr; text-align: right; }
+.logo { font-size: 22px; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 8px; font-weight: bold; }
+.instance { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); background: var(--card); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); direction: ltr; }
+.instance .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.instance.online .dot { background: var(--sorted); box-shadow: 0 0 8px var(--sorted); }
+.tabs { display: flex; gap: 4px; padding: 10px 24px 0; background: var(--panel); overflow-x: auto; }
+.tab { background: transparent; color: var(--muted); border: none; padding: 10px 16px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 14px; white-space: nowrap; font-family: inherit; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+main { padding: 18px 24px; max-width: 1400px; margin: 0 auto; }
+.panel { display: none; }
+.panel.active { display: block; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
+.toolbar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.toolbar label.check { flex-direction: row; align-items: center; font-size: 13px; color: var(--text); }
+input, select, button { font-family: inherit; font-size: 14px; }
+input, select { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; min-width: 90px; }
+button { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+.player { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; }
+.player input[type=range] { flex: 1; min-width: 160px; padding: 0; }
+.player .status { font-size: 12px; color: var(--muted); min-width: 140px; direction: ltr; text-align: left; }
+.stage { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.stage canvas, .stage svg { width: 100%; display: block; }
+.stage svg#pipe-svg { height: 420px; }
+.stage.split { display: grid; grid-template-columns: minmax(300px, 520px) 1fr; gap: 16px; align-items: start; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 14px; line-height: 1.7; }
+.card.wide { grid-column: span 2; }
+.card h3 { margin: 0 0 8px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.card p { margin: 0; }
+.stats { display: grid; grid-template-columns: auto auto; gap: 4px 16px; }
+.stats b { direction: ltr; text-align: left; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: right; }
+td.num, th.num { direction: ltr; text-align: left; }
+tr.best td { color: var(--sorted); font-weight: 600; }
+.chip { display: inline-block; padding: 2px 10px; border-radius: 12px; margin: 2px; font-size: 12px; color: #111; }
+.c-compare { background: var(--compare); }
+.c-swap { background: var(--swap); }
+.c-sorted { background: var(--sorted); }
+.c-ready { background: var(--ready); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 13px; }
+.checks label { flex-direction: row !important; align-items: center; color: var(--text) !important; font-size: 13px !important; }
+.bar-row { display: grid; grid-template-columns: 70px 1fr 50px; gap: 8px; align-items: center; font-size: 13px; margin: 3px 0; }
+.bar-row .track { background: #0b0f18; border-radius: 4px; height: 12px; overflow: hidden; }
+.bar-row .fill { height: 100%; border-radius: 4px; }
+footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; direction: ltr; }
+footer a { color: var(--muted); }
+@media (max-width: 800px) {
+  .stage.split { grid-template-columns: 1fr; }
+  .card.wide { grid-column: auto; }
+}
+/* Visualizations and timelines always flow left-to-right, even on an RTL page. */
+.stage canvas, .stage svg, .player input[type=range] { direction: ltr; }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">⟨/⟩</span>
+      <div>
+        <h1>مُصوِّر الخوارزميات</h1>
+        <p>Algorithms × DevOps × Cloud</p>
+      </div>
+    </div>
+    <div class="instance" id="instance" title="أي نسخة (Pod) من الخادم أجابت على الطلب">
+      <span class="dot"></span><span id="instance-text">جارٍ الاتصال بالخادم…</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="sorting">📊 الترتيب</button>
+    <button class="tab" data-tab="pathfinding">🧭 إيجاد المسار</button>
+    <button class="tab" data-tab="pipeline">⚙️ خط CI/CD</button>
+    <button class="tab" data-tab="lb">⚖️ موازنة الأحمال</button>
+    <button class="tab" data-tab="hashing">💍 Consistent Hashing</button>
+    <button class="tab" data-tab="autoscale">📈 Autoscaling</button>
+    <button class="tab" data-tab="benchmark">⏱️ قياس التعقيد</button>
+  </nav>
+
+  <main>
+    <!-- Sorting -->
+    <section class="panel active" id="panel-sorting">
+      <div class="toolbar">
+        <label>الخوارزمية <select id="sort-algo"></select></label>
+        <label>الحجم <input id="sort-size" type="number" min="5" max="100" value="40" /></label>
+        <label>نوع المدخلات
+          <select id="sort-input">
+            <option value="random">عشوائي</option>
+            <option value="sorted">مرتّب</option>
+            <option value="reversed">معكوس</option>
+            <option value="nearly-sorted">شبه مرتّب</option>
+            <option value="few-unique">قيم مكررة</option>
+          </select>
+        </label>
+        <button id="sort-generate" class="primary">توليد وتشغيل</button>
+      </div>
+      <div class="player" data-player="sorting"></div>
+      <div class="stage"><canvas id="sort-canvas" height="320"></canvas></div>
+      <div class="info-grid">
+        <div class="card"><h3>العمليات</h3><div id="sort-stats" class="stats"></div></div>
+        <div class="card"><h3>التعقيد</h3><div id="sort-complexity"></div></div>
+        <div class="card legend">
+          <h3>دليل الألوان</h3>
+          <span class="chip c-compare">مقارنة</span><span class="chip c-swap">تبديل/كتابة</span><span class="chip c-sorted">في مكانه النهائي</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pathfinding -->
+    <section class="panel" id="panel-pathfinding">
+      <div class="toolbar">
+        <label>الخوارزمية <select id="path-algo"></select></label>
+        <label>أداة الرسم
+          <select id="path-tool">
+            <option value="wall">جدار (عقدة معطّلة)</option>
+            <option value="weight">ازدحام (تكلفة 5)</option>
+            <option value="erase">مسح</option>
+            <option value="start">نقطة البداية</option>
+            <option value="end">نقطة النهاية</option>
+          </select>
+        </label>
+        <button id="path-random">شبكة عشوائية</button>
+        <button id="path-clear">مسح</button>
+        <button id="path-run" class="primary">تشغيل</button>
+        <button id="path-compare">مقارنة الكل</button>
+      </div>
+      <div class="player" data-player="pathfinding"></div>
+      <div class="stage"><canvas id="path-canvas" height="420"></canvas></div>
+      <div class="info-grid">
+        <div class="card"><h3>النتيجة</h3><div id="path-stats" class="stats"></div></div>
+        <div class="card"><h3>مقارنة الخوارزميات</h3><div id="path-compare-table"></div></div>
+        <div class="card legend">
+          <h3>ربطها بالسحابة</h3>
+          <p>الشبكة تمثّل شبكة خوادم أو مراكز بيانات: الجدار عقدة معطّلة، والخلية البرتقالية رابط مزدحم. هذا هو مبدأ التوجيه في بروتوكولات مثل OSPF (الذي يستخدم Dijkstra).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline -->
+    <section class="panel" id="panel-pipeline">
+      <div class="toolbar">
+        <button id="pipe-run" class="primary">جدولة الخط</button>
+        <label class="check"><input type="checkbox" id="pipe-cycle" /> أضف اعتمادية دائرية (prod → install)</label>
+      </div>
+      <div class="player" data-player="pipeline"></div>
+      <div class="stage"><svg id="pipe-svg" viewBox="0 0 1100 420"></svg></div>
+      <div class="info-grid">
+        <div class="card"><h3>النتيجة</h3><div id="pipe-stats" class="stats"></div></div>
+        <div class="card"><h3>الفكرة</h3>
+          <p>خط CI/CD عبارة عن <b>DAG</b>. خوارزمية <b>Kahn</b> للترتيب الطوبولوجي تحدّد ترتيب التنفيذ، وكل "مستوى" منها يمكن تشغيله على التوازي. ثم نحسب <b>المسار الحرج</b> (أطول مسار في DAG) باستخدام البرمجة الديناميكية، وهو الذي يحدد أقل زمن ممكن للخط بأكمله.</p>
+        </div>
+        <div class="card legend">
+          <h3>دليل الألوان</h3>
+          <span class="chip c-compare">قيد التنفيذ</span><span class="chip c-sorted">منتهٍ</span><span class="chip c-ready">جاهز (في الطابور)</span><span class="chip c-swap">المسار الحرج / دورة</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Load balancer -->
+    <section class="panel" id="panel-lb">
+      <div class="toolbar">
+        <label>الاستراتيجية <select id="lb-strategy"></select></label>
+        <label>سعة الخوادم <input id="lb-servers" value="1,2,4,2" title="سعة كل خادم مفصولة بفواصل" /></label>
+        <label>عدد الطلبات <input id="lb-count" type="number" min="20" max="2000" value="300" /></label>
+        <button id="lb-run" class="primary">محاكاة</button>
+      </div>
+      <div class="player" data-player="lb"></div>
+      <div class="stage"><canvas id="lb-canvas" height="300"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>مقارنة كل الاستراتيجيات (نفس الطلبات)</h3><div id="lb-table"></div></div>
+        <div class="card"><h3>نموذج المحاكاة</h3>
+          <p>الطلبات تصل بتوزيع ذي ذيل طويل (أغلبها قصير وقليل منها طويل جداً). كل خادم له سعة، وإذا تجاوز عدد الطلبات النشطة سعته يتباطأ. لاحظ الفرق في <b>p99</b> بين Round Robin و Least Connections.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Consistent hashing -->
+    <section class="panel" id="panel-hashing">
+      <div class="toolbar">
+        <label>Virtual nodes <input id="hash-vnodes" type="number" min="1" max="200" value="20" /></label>
+        <label>عدد المفاتيح <input id="hash-keys" type="number" min="10" max="5000" value="400" /></label>
+        <button id="hash-add" class="primary">➕ إضافة خادم</button>
+        <button id="hash-remove">➖ حذف خادم</button>
+        <button id="hash-reset">إعادة ضبط</button>
+      </div>
+      <div class="stage split">
+        <svg id="hash-svg" viewBox="-260 -260 520 520"></svg>
+        <div class="card">
+          <h3>آخر تغيير في العنقود</h3>
+          <div id="hash-stats" class="stats"></div>
+          <h3>توزيع المفاتيح</h3>
+          <div id="hash-dist"></div>
+        </div>
+      </div>
+      <div class="info-grid">
+        <div class="card wide"><h3>الفكرة</h3>
+          <p>مع <code>hash(key) % N</code>، إضافة خادم واحد تنقل معظم المفاتيح (كارثة لذاكرة التخزين المؤقت). أما مع <b>Consistent Hashing</b> فتوضع الخوادم على حلقة، ويذهب كل مفتاح لأول خادم باتجاه عقارب الساعة، فلا ينتقل إلا قرابة <b>1/N</b> من المفاتيح. والعقد الافتراضية (Virtual nodes) تجعل التوزيع متوازناً. البحث في الحلقة يتم بـ <b>Binary Search</b>.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Autoscaling -->
+    <section class="panel" id="panel-autoscale">
+      <div class="toolbar">
+        <label>الهدف لكل Pod (طلب/ث) <input id="hpa-target" type="number" min="5" max="500" value="50" /></label>
+        <label>الحد الأدنى <input id="hpa-min" type="number" min="1" max="10" value="2" /></label>
+        <label>الحد الأقصى <input id="hpa-max" type="number" min="1" max="50" value="12" /></label>
+        <label>نمط الحمل
+          <select id="hpa-pattern">
+            <option value="spike">ارتفاع مفاجئ</option>
+            <option value="daily">دورة يومية</option>
+            <option value="ramp">تصاعد تدريجي</option>
+          </select>
+        </label>
+        <button id="hpa-run" class="primary">محاكاة</button>
+      </div>
+      <div class="stage"><canvas id="hpa-canvas" height="320"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>معادلة Kubernetes HPA</h3>
+          <p><code>desired = ceil(current × currentMetric / targetMetric)</code> مع تجاهل التغيّر داخل هامش 10%، وحصر النتيجة بين الحدين الأدنى والأقصى. لاحظ التأخير بين ارتفاع الحمل وزيادة عدد الـ Pods، ولهذا نحتاج هامشاً في الـ target.</p>
+        </div>
+        <div class="card"><h3>النتيجة</h3><div id="hpa-stats" class="stats"></div></div>
+      </div>
+    </section>
+
+    <!-- Benchmark -->
+    <section class="panel" id="panel-benchmark">
+      <div class="toolbar">
+        <div id="bench-algos" class="checks"></div>
+        <label>المدخلات
+          <select id="bench-input">
+            <option value="random">عشوائي</option>
+            <option value="sorted">مرتّب</option>
+            <option value="reversed">معكوس</option>
+          </select>
+        </label>
+        <label>المقياس
+          <select id="bench-metric">
+            <option value="comparisons">عدد المقارنات</option>
+            <option value="writes">عدد الكتابات</option>
+            <option value="ms">الزمن (ms)</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="bench-log" checked /> مقياس لوغاريتمي</label>
+        <button id="bench-run" class="primary">قياس على الخادم</button>
+      </div>
+      <div class="stage"><canvas id="bench-canvas" height="380"></canvas></div>
+      <div class="info-grid">
+        <div class="card wide"><h3>كيف يعمل؟</h3>
+          <p>يرسل المتصفح طلب <code>GET /api/benchmark</code> لكل خوارزمية، ويشغّلها الخادم على أحجام 50 إلى 1600. عدد العمليات قيمة حتمية تُظهر التعقيد الحقيقي (n² مقابل n log n)، أما الزمن فيعتمد على الجهاز. الخطوط المتقطعة منحنيات مرجعية.</p>
+        </div>
+        <div class="card"><h3>المصدر</h3><div id="bench-source" class="stats"></div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>Standalone build · generated by scripts/build-standalone.mjs</footer>
+
+  <script>
+"use strict";
+(() => {
+// ---- core/random.js ----
+// Seeded pseudo-random generator (mulberry32) so runs and benchmarks are reproducible.
+function createRng(seed = 1) {
+  let a = seed >>> 0;
+  return function rng() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function randomInt(rng, min, max) {
+  return min + Math.floor(rng() * (max - min + 1));
+}
+
+/**
+ * Build an input array for sorting.
+ * kind: random | sorted | reversed | nearly-sorted | few-unique
+ */
+function makeArray(n, kind = 'random', seed = 42, max = 100) {
+  const rng = createRng(seed);
+  let arr = Array.from({ length: n }, () => randomInt(rng, 1, max));
+  switch (kind) {
+    case 'sorted':
+      arr.sort((x, y) => x - y);
+      break;
+    case 'reversed':
+      arr.sort((x, y) => y - x);
+      break;
+    case 'nearly-sorted':
+      arr.sort((x, y) => x - y);
+      for (let k = 0; k < Math.max(1, Math.floor(n / 10)); k++) {
+        const i = randomInt(rng, 0, n - 1);
+        const j = randomInt(rng, 0, n - 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      break;
+    case 'few-unique':
+      arr = arr.map((v) => Math.ceil(v / (max / 4)) * Math.floor(max / 4));
+      break;
+    case 'random':
+      break;
+    default:
+      throw new Error(`Unknown input kind: ${kind}`);
+  }
+  return arr;
+}
+
+// ---- core/heap.js ----
+// Binary min-heap (priority queue). push/pop are O(log n).
+class MinHeap {
+  constructor(priority = (x) => x) {
+    this.items = [];
+    this.priority = priority;
+  }
+
+  get size() {
+    return this.items.length;
+  }
+
+  push(item) {
+    const a = this.items;
+    a.push(item);
+    let i = a.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (this.priority(a[parent]) <= this.priority(a[i])) break;
+      [a[parent], a[i]] = [a[i], a[parent]];
+      i = parent;
+    }
+  }
+
+  pop() {
+    const a = this.items;
+    if (a.length === 0) return undefined;
+    const top = a[0];
+    const last = a.pop();
+    if (a.length > 0) {
+      a[0] = last;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1;
+        const r = l + 1;
+        let m = i;
+        if (l < a.length && this.priority(a[l]) < this.priority(a[m])) m = l;
+        if (r < a.length && this.priority(a[r]) < this.priority(a[m])) m = r;
+        if (m === i) break;
+        [a[m], a[i]] = [a[i], a[m]];
+        i = m;
+      }
+    }
+    return top;
+  }
+}
+
+// ---- core/sorting.js ----
+// Sorting algorithms instrumented with a Tracer.
+// Every comparison / write is counted; when `record` is true a snapshot of the
+// array is stored so the UI can replay the algorithm step by step.
+
+class Tracer {
+  constructor(input, record) {
+    this.a = input.slice();
+    this.record = record;
+    this.steps = [];
+    this.stats = { comparisons: 0, writes: 0 };
+    this.sorted = new Set();
+  }
+
+  snap(extra = {}) {
+    if (!this.record) return;
+    this.steps.push({
+      arr: this.a.slice(),
+      sorted: [...this.sorted],
+      comparisons: this.stats.comparisons,
+      writes: this.stats.writes,
+      ...extra,
+    });
+  }
+
+  // Compare a[i] with a[j]; returns negative / 0 / positive.
+  cmp(i, j) {
+    this.stats.comparisons++;
+    this.snap({ compare: [i, j] });
+    return this.a[i] - this.a[j];
+  }
+
+  // Compare two values that are not (only) in the main array, e.g. merge sort's aux buffer.
+  cmpValues(x, y, highlight) {
+    this.stats.comparisons++;
+    this.snap({ compare: highlight });
+    return x - y;
+  }
+
+  swap(i, j) {
+    if (i === j) return;
+    const a = this.a;
+    [a[i], a[j]] = [a[j], a[i]];
+    this.stats.writes += 2;
+    this.snap({ swap: [i, j] });
+  }
+
+  set(i, value) {
+    this.a[i] = value;
+    this.stats.writes++;
+    this.snap({ swap: [i] });
+  }
+
+  markSorted(...indices) {
+    for (const i of indices) this.sorted.add(i);
+  }
+
+  finish() {
+    this.a.forEach((_, i) => this.sorted.add(i));
+    this.snap();
+    return { result: this.a, steps: this.steps, stats: this.stats };
+  }
+}
+
+function bubbleSort(t) {
+  const n = t.a.length;
+  for (let i = 0; i < n - 1; i++) {
+    let swapped = false;
+    for (let j = 0; j < n - 1 - i; j++) {
+      if (t.cmp(j, j + 1) > 0) {
+        t.swap(j, j + 1);
+        swapped = true;
+      }
+    }
+    t.markSorted(n - 1 - i);
+    if (!swapped) break; // already sorted -> O(n) best case
+  }
+}
+
+function selectionSort(t) {
+  const n = t.a.length;
+  for (let i = 0; i < n - 1; i++) {
+    let min = i;
+    for (let j = i + 1; j < n; j++) if (t.cmp(j, min) < 0) min = j;
+    t.swap(i, min);
+    t.markSorted(i);
+  }
+}
+
+function insertionSort(t) {
+  const n = t.a.length;
+  for (let i = 1; i < n; i++) {
+    let j = i;
+    while (j > 0 && t.cmp(j - 1, j) > 0) {
+      t.swap(j - 1, j);
+      j--;
+    }
+  }
+}
+
+function mergeSort(t) {
+  const a = t.a;
+  const aux = new Array(a.length);
+  const sort = (lo, hi) => {
+    if (hi <= lo) return;
+    const mid = (lo + hi) >> 1;
+    sort(lo, mid);
+    sort(mid + 1, hi);
+    for (let k = lo; k <= hi; k++) aux[k] = a[k];
+    let i = lo;
+    let j = mid + 1;
+    for (let k = lo; k <= hi; k++) {
+      if (i > mid) t.set(k, aux[j++]);
+      else if (j > hi) t.set(k, aux[i++]);
+      else if (t.cmpValues(aux[j], aux[i], [k, j]) < 0) t.set(k, aux[j++]);
+      else t.set(k, aux[i++]);
+    }
+  };
+  sort(0, a.length - 1);
+}
+
+function quickSort(t) {
+  // Lomuto partition with the middle element as pivot (avoids O(n²) on sorted input).
+  const sort = (lo, hi) => {
+    if (lo > hi) return;
+    if (lo === hi) {
+      t.markSorted(lo);
+      return;
+    }
+    t.swap((lo + hi) >> 1, hi);
+    let p = lo;
+    for (let i = lo; i < hi; i++) {
+      if (t.cmp(i, hi) < 0) {
+        t.swap(i, p);
+        p++;
+      }
+    }
+    t.swap(p, hi);
+    t.markSorted(p);
+    sort(lo, p - 1);
+    sort(p + 1, hi);
+  };
+  sort(0, t.a.length - 1);
+}
+
+function heapSort(t) {
+  const n = t.a.length;
+  const siftDown = (i, size) => {
+    for (;;) {
+      const l = 2 * i + 1;
+      const r = l + 1;
+      let m = i;
+      if (l < size && t.cmp(l, m) > 0) m = l;
+      if (r < size && t.cmp(r, m) > 0) m = r;
+      if (m === i) return;
+      t.swap(i, m);
+      i = m;
+    }
+  };
+  for (let i = (n >> 1) - 1; i >= 0; i--) siftDown(i, n);
+  for (let end = n - 1; end > 0; end--) {
+    t.swap(0, end);
+    t.markSorted(end);
+    siftDown(0, end);
+  }
+}
+
+function shellSort(t) {
+  const n = t.a.length;
+  let gap = 1;
+  while (gap < n / 3) gap = 3 * gap + 1; // Knuth sequence
+  for (; gap >= 1; gap = Math.floor(gap / 3)) {
+    for (let i = gap; i < n; i++) {
+      for (let j = i; j >= gap && t.cmp(j - gap, j) > 0; j -= gap) t.swap(j - gap, j);
+    }
+  }
+}
+
+const SORTING = {
+  bubble: {
+    name: 'Bubble Sort',
+    complexity: { best: 'O(n)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
+    stable: true,
+    run: bubbleSort,
+  },
+  selection: {
+    name: 'Selection Sort',
+    complexity: { best: 'O(n²)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
+    stable: false,
+    run: selectionSort,
+  },
+  insertion: {
+    name: 'Insertion Sort',
+    complexity: { best: 'O(n)', average: 'O(n²)', worst: 'O(n²)', space: 'O(1)' },
+    stable: true,
+    run: insertionSort,
+  },
+  shell: {
+    name: 'Shell Sort',
+    complexity: { best: 'O(n log n)', average: '≈O(n^1.25)', worst: 'O(n^1.5)', space: 'O(1)' },
+    stable: false,
+    run: shellSort,
+  },
+  merge: {
+    name: 'Merge Sort',
+    complexity: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)', space: 'O(n)' },
+    stable: true,
+    run: mergeSort,
+  },
+  quick: {
+    name: 'Quick Sort',
+    complexity: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n²)', space: 'O(log n)' },
+    stable: false,
+    run: quickSort,
+  },
+  heap: {
+    name: 'Heap Sort',
+    complexity: { best: 'O(n log n)', average: 'O(n log n)', worst: 'O(n log n)', space: 'O(1)' },
+    stable: false,
+    run: heapSort,
+  },
+};
+
+function runSort(id, input, { record = true } = {}) {
+  const algo = SORTING[id];
+  if (!algo) throw new Error(`Unknown sorting algorithm: ${id}`);
+  const t = new Tracer(input, record);
+  t.snap();
+  algo.run(t);
+  return t.finish();
+}
+
+// ---- core/pathfinding.js ----
+// Grid path-finding: BFS, DFS, Dijkstra, A*.
+// A grid is { rows, cols, walls: number[], weights: number[], start, end } where
+// cells are addressed by index = row * cols + col. "Weight" cells cost WEIGHT_COST
+// to enter (think: a congested network link), every other cell costs 1.
+
+
+
+const WEIGHT_COST = 5;
+
+function prepare(grid) {
+  const { rows, cols, start, end } = grid;
+  const size = rows * cols;
+  if (!Number.isInteger(rows) || !Number.isInteger(cols) || rows < 2 || cols < 2 || size > 10000) {
+    throw new Error('Grid must be between 2x2 and 10000 cells');
+  }
+  for (const i of [start, end]) {
+    if (!Number.isInteger(i) || i < 0 || i >= size) throw new Error('start/end out of range');
+  }
+  const wall = new Uint8Array(size);
+  const weight = new Uint8Array(size);
+  for (const i of grid.walls ?? []) if (i >= 0 && i < size) wall[i] = 1;
+  for (const i of grid.weights ?? []) if (i >= 0 && i < size) weight[i] = 1;
+  wall[start] = 0;
+  wall[end] = 0;
+  return { rows, cols, start, end, size, wall, weight };
+}
+
+function neighbors(g, i) {
+  const r = Math.floor(i / g.cols);
+  const c = i % g.cols;
+  const out = [];
+  if (r > 0) out.push(i - g.cols);
+  if (c < g.cols - 1) out.push(i + 1);
+  if (r < g.rows - 1) out.push(i + g.cols);
+  if (c > 0) out.push(i - 1);
+  return out.filter((j) => !g.wall[j]);
+}
+
+const cost = (g, j) => (g.weight[j] ? WEIGHT_COST : 1);
+
+function manhattan(g, i) {
+  const dr = Math.abs(Math.floor(i / g.cols) - Math.floor(g.end / g.cols));
+  const dc = Math.abs((i % g.cols) - (g.end % g.cols));
+  return dr + dc;
+}
+
+function buildResult(g, visited, prev) {
+  const path = [];
+  if (g.start === g.end || prev[g.end] !== -1) {
+    for (let at = g.end; at !== -1; at = prev[at]) path.push(at);
+    path.reverse();
+  }
+  const pathCost = path.slice(1).reduce((sum, i) => sum + cost(g, i), 0);
+  return {
+    visited,
+    path,
+    found: path.length > 0,
+    stats: { visited: visited.length, pathLength: path.length, pathCost },
+  };
+}
+
+function bfs(g) {
+  const prev = new Int32Array(g.size).fill(-1);
+  const seen = new Uint8Array(g.size);
+  const visited = [];
+  const queue = [g.start];
+  seen[g.start] = 1;
+  for (let head = 0; head < queue.length; head++) {
+    const u = queue[head];
+    visited.push(u);
+    if (u === g.end) break;
+    for (const v of neighbors(g, u)) {
+      if (!seen[v]) {
+        seen[v] = 1;
+        prev[v] = u;
+        queue.push(v);
+      }
+    }
+  }
+  return buildResult(g, visited, prev);
+}
+
+function dfs(g) {
+  const prev = new Int32Array(g.size).fill(-1);
+  const seen = new Uint8Array(g.size);
+  const visited = [];
+  const stack = [g.start];
+  while (stack.length) {
+    const u = stack.pop();
+    if (seen[u]) continue;
+    seen[u] = 1;
+    visited.push(u);
+    if (u === g.end) break;
+    for (const v of neighbors(g, u).reverse()) {
+      if (!seen[v]) {
+        prev[v] = u;
+        stack.push(v);
+      }
+    }
+  }
+  return buildResult(g, visited, prev);
+}
+
+// Dijkstra = best-first search ordered by g(n). A* adds an admissible heuristic h(n).
+function bestFirst(g, heuristic) {
+  const dist = new Float64Array(g.size).fill(Infinity);
+  const prev = new Int32Array(g.size).fill(-1);
+  const closed = new Uint8Array(g.size);
+  const visited = [];
+  const heap = new MinHeap((e) => e.f);
+  dist[g.start] = 0;
+  heap.push({ node: g.start, f: heuristic(g, g.start) });
+  while (heap.size) {
+    const { node: u } = heap.pop();
+    if (closed[u]) continue;
+    closed[u] = 1;
+    visited.push(u);
+    if (u === g.end) break;
+    for (const v of neighbors(g, u)) {
+      const alt = dist[u] + cost(g, v);
+      if (alt < dist[v]) {
+        dist[v] = alt;
+        prev[v] = u;
+        heap.push({ node: v, f: alt + heuristic(g, v) });
+      }
+    }
+  }
+  return buildResult(g, visited, prev);
+}
+
+const PATHFINDING = {
+  bfs: {
+    name: 'Breadth-First Search',
+    complexity: { time: 'O(V + E)', space: 'O(V)' },
+    weighted: false,
+    optimal: 'Only on unweighted graphs',
+    run: bfs,
+  },
+  dfs: {
+    name: 'Depth-First Search',
+    complexity: { time: 'O(V + E)', space: 'O(V)' },
+    weighted: false,
+    optimal: 'No',
+    run: dfs,
+  },
+  dijkstra: {
+    name: "Dijkstra's Algorithm",
+    complexity: { time: 'O((V + E) log V)', space: 'O(V)' },
+    weighted: true,
+    optimal: 'Yes',
+    run: (g) => bestFirst(g, () => 0),
+  },
+  astar: {
+    name: 'A* Search (Manhattan)',
+    complexity: { time: 'O((V + E) log V)', space: 'O(V)' },
+    weighted: true,
+    optimal: 'Yes (admissible heuristic)',
+    run: (g) => bestFirst(g, manhattan),
+  },
+};
+
+function runPathfinding(id, grid) {
+  const algo = PATHFINDING[id];
+  if (!algo) throw new Error(`Unknown path-finding algorithm: ${id}`);
+  return algo.run(prepare(grid));
+}
+
+function randomGrid(rows, cols, { wallDensity = 0.25, weightDensity = 0.1, seed = 7 } = {}) {
+  const rng = createRng(seed);
+  const start = Math.floor(rows / 2) * cols + 2;
+  const end = Math.floor(rows / 2) * cols + cols - 3;
+  const walls = [];
+  const weights = [];
+  for (let i = 0; i < rows * cols; i++) {
+    if (i === start || i === end) continue;
+    const x = rng();
+    if (x < wallDensity) walls.push(i);
+    else if (x < wallDensity + weightDensity) weights.push(i);
+  }
+  return { rows, cols, start, end, walls, weights };
+}
+
+// ---- core/cloud.js ----
+// Algorithms that power real cloud / DevOps systems.
+
+
+
+/* ------------------------------------------------------------------ *
+ * 1) CI/CD pipeline scheduling: topological sort (Kahn) + critical path
+ * ------------------------------------------------------------------ */
+
+const CI_PIPELINE = {
+  nodes: [
+    { id: 'checkout', label: 'Checkout', duration: 1 },
+    { id: 'install', label: 'Install deps', duration: 3 },
+    { id: 'lint', label: 'Lint', duration: 2 },
+    { id: 'unit', label: 'Unit tests', duration: 5 },
+    { id: 'sast', label: 'SAST scan', duration: 4 },
+    { id: 'build', label: 'Build image', duration: 6 },
+    { id: 'scan', label: 'Image scan', duration: 3 },
+    { id: 'push', label: 'Push registry', duration: 2 },
+    { id: 'staging', label: 'Deploy staging', duration: 3 },
+    { id: 'e2e', label: 'E2E tests', duration: 7 },
+    { id: 'approve', label: 'Approval', duration: 1 },
+    { id: 'prod', label: 'Deploy prod', duration: 3 },
+  ],
+  edges: [
+    ['checkout', 'install'],
+    ['checkout', 'sast'],
+    ['install', 'lint'],
+    ['install', 'unit'],
+    ['install', 'build'],
+    ['build', 'scan'],
+    ['lint', 'push'],
+    ['unit', 'push'],
+    ['scan', 'push'],
+    ['sast', 'push'],
+    ['push', 'staging'],
+    ['staging', 'e2e'],
+    ['e2e', 'approve'],
+    ['approve', 'prod'],
+  ],
+};
+
+function schedulePipeline({ nodes, edges }) {
+  const ids = nodes.map((n) => n.id);
+  if (new Set(ids).size !== ids.length) throw new Error('Duplicate node id');
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const adj = new Map(ids.map((id) => [id, []]));
+  const radj = new Map(ids.map((id) => [id, []]));
+  const indeg = new Map(ids.map((id) => [id, 0]));
+  for (const [from, to] of edges) {
+    if (!byId.has(from) || !byId.has(to)) throw new Error(`Edge references unknown node: ${from} -> ${to}`);
+    adj.get(from).push(to);
+    radj.get(to).push(from);
+    indeg.set(to, indeg.get(to) + 1);
+  }
+
+  // Kahn's algorithm, processed level by level: every level can run in parallel.
+  const order = [];
+  const levels = [];
+  const steps = [];
+  let frontier = ids.filter((id) => indeg.get(id) === 0);
+  while (frontier.length) {
+    levels.push(frontier.slice());
+    const next = [];
+    frontier.forEach((u, idx) => {
+      order.push(u);
+      for (const v of adj.get(u)) {
+        indeg.set(v, indeg.get(v) - 1);
+        if (indeg.get(v) === 0) next.push(v);
+      }
+      steps.push({
+        current: u,
+        level: levels.length - 1,
+        done: order.slice(),
+        ready: [...frontier.slice(idx + 1), ...next],
+      });
+    });
+    frontier = next;
+  }
+
+  const hasCycle = order.length < ids.length;
+  const blocked = ids.filter((id) => !order.includes(id));
+  if (hasCycle) {
+    return { order, levels, steps, hasCycle, blocked, schedule: null, criticalPath: [], makespan: null };
+  }
+
+  // Critical path = longest path in a DAG, DP over the topological order.
+  const earliestStart = new Map();
+  const finish = new Map();
+  const via = new Map();
+  for (const u of order) {
+    let start = 0;
+    let from = null;
+    for (const p of radj.get(u)) {
+      if (finish.get(p) > start) {
+        start = finish.get(p);
+        from = p;
+      }
+    }
+    earliestStart.set(u, start);
+    finish.set(u, start + (byId.get(u).duration ?? 1));
+    via.set(u, from);
+  }
+  let last = order[0];
+  for (const u of order) if (finish.get(u) > finish.get(last)) last = u;
+  const criticalPath = [];
+  for (let at = last; at; at = via.get(at)) criticalPath.push(at);
+  criticalPath.reverse();
+  const sequential = nodes.reduce((s, n) => s + (n.duration ?? 1), 0);
+
+  return {
+    order,
+    levels,
+    steps,
+    hasCycle,
+    blocked,
+    schedule: order.map((id) => ({ id, start: earliestStart.get(id), finish: finish.get(id) })),
+    criticalPath,
+    makespan: finish.get(last),
+    sequentialTime: sequential,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 2) Load balancing strategies (discrete-event simulation)
+ * ------------------------------------------------------------------ */
+
+const LB_STRATEGIES = {
+  'round-robin': 'Round Robin',
+  'weighted-round-robin': 'Smooth Weighted Round Robin (nginx)',
+  'least-connections': 'Least Connections',
+  random: 'Random',
+  'power-of-two': 'Power of Two Choices',
+};
+
+function generateRequests(count, seed = 3) {
+  const rng = createRng(seed);
+  const requests = [];
+  let t = 0;
+  for (let i = 0; i < count; i++) {
+    t += randomInt(rng, 0, 2);
+    // Heavy-tailed durations: most requests are short, a few are very long.
+    const duration = rng() < 0.15 ? randomInt(rng, 15, 40) : randomInt(rng, 2, 8);
+    requests.push({ id: i, arrival: t, duration });
+  }
+  return requests;
+}
+
+/**
+ * servers: [{ id, capacity }] — capacity = how many requests it serves at full speed
+ * (used as weight by weighted strategies). If more requests are active than the
+ * capacity, each one is slowed down proportionally (a simple contention model).
+ */
+function simulateLoadBalancer({ servers, requests, strategy, seed = 11 }) {
+  if (!LB_STRATEGIES[strategy]) throw new Error(`Unknown strategy: ${strategy}`);
+  if (!servers.length) throw new Error('At least one server is required');
+  const rng = createRng(seed);
+  const n = servers.length;
+  const active = new Array(n).fill(0);
+  const handled = new Array(n).fill(0);
+  const peak = new Array(n).fill(0);
+  const currentWeight = new Array(n).fill(0);
+  const totalWeight = servers.reduce((s, x) => s + x.capacity, 0);
+  const completions = new MinHeap((e) => e.at);
+  const latencies = [];
+  const steps = [];
+  let rr = 0;
+
+  const pick = () => {
+    switch (strategy) {
+      case 'round-robin':
+        return rr++ % n;
+      case 'weighted-round-robin': {
+        let best = 0;
+        for (let i = 0; i < n; i++) {
+          currentWeight[i] += servers[i].capacity;
+          if (currentWeight[i] > currentWeight[best]) best = i;
+        }
+        currentWeight[best] -= totalWeight;
+        return best;
+      }
+      case 'least-connections': {
+        let best = 0;
+        for (let i = 1; i < n; i++) {
+          if (active[i] / servers[i].capacity < active[best] / servers[best].capacity) best = i;
+        }
+        return best;
+      }
+      case 'random':
+        return Math.floor(rng() * n);
+      case 'power-of-two': {
+        const a = Math.floor(rng() * n);
+        const b = Math.floor(rng() * n);
+        return active[a] / servers[a].capacity <= active[b] / servers[b].capacity ? a : b;
+      }
+      default:
+        throw new Error('unreachable');
+    }
+  };
+
+  for (const req of requests) {
+    while (completions.size && completions.items[0].at <= req.arrival) {
+      active[completions.pop().server]--;
+    }
+    const s = pick();
+    const slowdown = Math.max(1, (active[s] + 1) / servers[s].capacity);
+    const latency = req.duration * slowdown;
+    active[s]++;
+    handled[s]++;
+    peak[s] = Math.max(peak[s], active[s]);
+    latencies.push(latency);
+    completions.push({ at: req.arrival + latency, server: s });
+    steps.push({ time: req.arrival, request: req.id, server: s, latency, active: active.slice() });
+  }
+
+  const sorted = latencies.slice().sort((a, b) => a - b);
+  const pct = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] ?? 0;
+  const avg = sorted.reduce((s, x) => s + x, 0) / (sorted.length || 1);
+  return {
+    strategy,
+    steps,
+    stats: {
+      handled,
+      peak,
+      avgLatency: +avg.toFixed(2),
+      p95Latency: +pct(0.95).toFixed(2),
+      p99Latency: +pct(0.99).toFixed(2),
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 3) Consistent hashing (used by CDNs, DynamoDB, Cassandra, memcached clients)
+ * ------------------------------------------------------------------ */
+
+// FNV-1a followed by the murmur3 finalizer for a good avalanche effect.
+function hash32(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return h >>> 0;
+}
+
+class HashRing {
+  constructor(nodes = [], virtualNodes = 50) {
+    this.virtualNodes = virtualNodes;
+    this.ring = []; // sorted [{ hash, node }]
+    for (const n of nodes) this.addNode(n);
+  }
+
+  get nodes() {
+    return [...new Set(this.ring.map((p) => p.node))];
+  }
+
+  addNode(node) {
+    for (let v = 0; v < this.virtualNodes; v++) this.ring.push({ hash: hash32(`${node}#${v}`), node });
+    this.ring.sort((a, b) => a.hash - b.hash);
+  }
+
+  removeNode(node) {
+    this.ring = this.ring.filter((p) => p.node !== node);
+  }
+
+  // Binary search for the first point clockwise from the key's hash: O(log(N·V)).
+  getNode(key) {
+    if (!this.ring.length) return null;
+    const h = hash32(key);
+    let lo = 0;
+    let hi = this.ring.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (this.ring[mid].hash < h) lo = mid + 1;
+      else hi = mid;
+    }
+    return this.ring[lo === this.ring.length ? 0 : lo].node;
+  }
+}
+
+const moduloNode = (nodes, key) => nodes[hash32(key) % nodes.length];
+
+// How many keys move when the cluster changes from `before` to `after`?
+function compareRebalancing(before, after, keyCount = 1000, virtualNodes = 50) {
+  const keys = Array.from({ length: keyCount }, (_, i) => `key-${i}`);
+  const r1 = new HashRing(before, virtualNodes);
+  const r2 = new HashRing(after, virtualNodes);
+  let movedRing = 0;
+  let movedModulo = 0;
+  const distribution = Object.fromEntries(after.map((n) => [n, 0]));
+  for (const k of keys) {
+    const owner = r2.getNode(k);
+    distribution[owner]++;
+    if (r1.getNode(k) !== owner) movedRing++;
+    if (before.length && moduloNode(before, k) !== moduloNode(after, k)) movedModulo++;
+  }
+  return {
+    keys: keyCount,
+    consistent: { moved: movedRing, percent: +((100 * movedRing) / keyCount).toFixed(1) },
+    modulo: { moved: movedModulo, percent: +((100 * movedModulo) / keyCount).toFixed(1) },
+    distribution,
+  };
+}
+
+/* ------------------------------------------------------------------ *
+ * 4) Token bucket rate limiter (API gateways, nginx limit_req, AWS API GW)
+ * ------------------------------------------------------------------ */
+
+class TokenBucket {
+  constructor({ capacity, refillPerSecond, now = () => Date.now() }) {
+    this.capacity = capacity;
+    this.refillPerMs = refillPerSecond / 1000;
+    this.now = now;
+    this.tokens = capacity;
+    this.last = now();
+  }
+
+  tryRemove(count = 1) {
+    const t = this.now();
+    this.tokens = Math.min(this.capacity, this.tokens + (t - this.last) * this.refillPerMs);
+    this.last = t;
+    if (this.tokens >= count) {
+      this.tokens -= count;
+      return true;
+    }
+    return false;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * 5) Kubernetes Horizontal Pod Autoscaler formula
+ * desired = ceil(current * currentMetric / targetMetric), clamped to [min, max],
+ * ignored while inside the tolerance band (default 10%).
+ * ------------------------------------------------------------------ */
+
+function hpaDesiredReplicas({ current, currentMetric, targetMetric, min = 1, max = 10, tolerance = 0.1 }) {
+  const ratio = currentMetric / targetMetric;
+  if (Math.abs(ratio - 1) <= tolerance) return Math.min(max, Math.max(min, current));
+  return Math.min(max, Math.max(min, Math.ceil(current * ratio)));
+}
+
+function simulateAutoscaling({ load, targetPerPod = 50, min = 1, max = 10 }) {
+  let replicas = min;
+  return load.map((rps, t) => {
+    const perPod = rps / replicas;
+    const next = hpaDesiredReplicas({ current: replicas, currentMetric: perPod, targetMetric: targetPerPod, min, max });
+    const row = { t, rps, replicas, perPod: +perPod.toFixed(1) };
+    replicas = next;
+    return row;
+  });
+}
+
+// ---- core/benchmark.js ----
+
+
+
+const DEFAULT_SIZES = [50, 100, 200, 400, 800, 1600];
+
+// Measure operation counts (deterministic) and wall time (machine dependent).
+function benchmarkSort(id, { sizes = DEFAULT_SIZES, input = 'random', seed = 42 } = {}) {
+  return sizes.map((n) => {
+    const arr = makeArray(n, input, seed + n, 1000);
+    const t0 = performance.now();
+    const { stats } = runSort(id, arr, { record: false });
+    const ms = performance.now() - t0;
+    return { n, comparisons: stats.comparisons, writes: stats.writes, ms: +ms.toFixed(3) };
+  });
+}
+
+// ---- app.js ----
+// Front-end: the same algorithm modules run in the browser (for step-by-step
+// animation) and on the server (API + benchmarks). Served from /core/.
+
+
+const $ = (sel) => document.querySelector(sel);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const PALETTE = ['#4f8cff', '#36c98e', '#f5c84c', '#ff5d6c', '#9b7bff', '#2ec4d6', '#ff9f43', '#e86fd1', '#a3d65c', '#c0c7da'];
+const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : n);
+
+/* ---------------- API helper with graceful degradation ---------------- */
+// Opened directly from disk (double-click): there is no server, run everything in the browser.
+const STANDALONE = location.protocol === 'file:';
+
+async function api(path, { method = 'GET', body } = {}, fallback) {
+  if (STANDALONE && fallback) return { data: fallback(), source: 'browser' };
+  try {
+    const res = await fetch(path, {
+      method,
+      headers: body ? { 'content-type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`${res.status} ${(await res.json().catch(() => ({}))).error ?? ''}`);
+    return { data: await res.json(), source: res.headers.get('x-served-by') ?? 'server' };
+  } catch (err) {
+    if (!fallback) throw err;
+    console.warn(`API ${path} failed (${err.message}); running locally in the browser`);
+    return { data: fallback(), source: 'browser (fallback)' };
+  }
+}
+
+async function refreshInstance() {
+  if (STANDALONE) {
+    $('#instance').classList.add('online');
+    $('#instance-text').textContent = 'standalone · browser only';
+    return;
+  }
+  try {
+    const { data } = await api('/api/info');
+    $('#instance').classList.add('online');
+    $('#instance-text').textContent = `${data.instance} · v${data.version} · ${data.region}`;
+  } catch {
+    $('#instance').classList.remove('online');
+    $('#instance-text').textContent = 'offline';
+  }
+}
+refreshInstance();
+if (!STANDALONE) setInterval(refreshInstance, 5000);
+
+/* ---------------- Tabs ---------------- */
+const onShow = {};
+document.querySelectorAll('.tab').forEach((tab) =>
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t === tab));
+    document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === `panel-${tab.dataset.tab}`));
+    onShow[tab.dataset.tab]?.();
+  }),
+);
+
+/* ---------------- Canvas helper ---------------- */
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = Number(canvas.getAttribute('height'));
+  if (canvas.width !== Math.round(w * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.height = `${h}px`;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  return { ctx, w, h };
+}
+
+/* ---------------- Generic step player ---------------- */
+class Player {
+  constructor(name, render) {
+    this.render = render;
+    this.steps = 0;
+    this.index = 0;
+    this.playing = false;
+    const root = document.querySelector(`[data-player="${name}"]`);
+    root.innerHTML = `
+      <button data-act="reset">⏮ البداية</button>
+      <button data-act="prev">خطوة للخلف</button>
+      <button data-act="play" class="primary">▶ تشغيل</button>
+      <button data-act="next">خطوة للأمام</button>
+      <button data-act="end">النهاية ⏭</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)">السرعة
+        <input data-act="speed" type="range" min="1" max="100" value="55" style="min-width:100px"></label>
+      <input data-act="progress" type="range" min="0" max="0" value="0">
+      <span class="status" data-act="status"></span>`;
+    this.el = Object.fromEntries([...root.querySelectorAll('[data-act]')].map((e) => [e.dataset.act, e]));
+    this.el.play.onclick = () => (this.playing ? this.pause() : this.play());
+    this.el.prev.onclick = () => (this.pause(), this.go(this.index - 1));
+    this.el.next.onclick = () => (this.pause(), this.go(this.index + 1));
+    this.el.reset.onclick = () => (this.pause(), this.go(0));
+    this.el.end.onclick = () => (this.pause(), this.go(this.steps - 1));
+    this.el.progress.oninput = () => (this.pause(), this.go(Number(this.el.progress.value)));
+  }
+
+  load(steps, { autoplay = true } = {}) {
+    this.pause();
+    this.steps = steps;
+    this.el.progress.max = Math.max(0, steps - 1);
+    this.go(0);
+    if (autoplay) this.play();
+  }
+
+  go(i) {
+    this.index = Math.max(0, Math.min(this.steps - 1, i));
+    this.el.progress.value = this.index;
+    this.el.status.textContent = `step ${fmt(this.index + 1)} / ${fmt(this.steps)}`;
+    this.render(this.index);
+  }
+
+  play() {
+    if (!this.steps) return;
+    if (this.index >= this.steps - 1) this.go(0);
+    this.playing = true;
+    this.el.play.textContent = '⏸ إيقاف';
+    let last = performance.now();
+    let carry = 0;
+    const tick = (now) => {
+      if (!this.playing) return;
+      const perSecond = 2 * 1.075 ** Number(this.el.speed.value);
+      carry += ((now - last) / 1000) * perSecond;
+      last = now;
+      const advance = Math.floor(carry);
+      if (advance > 0) {
+        carry -= advance;
+        this.go(this.index + advance);
+      }
+      if (this.index >= this.steps - 1) this.pause();
+      else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  pause() {
+    this.playing = false;
+    this.el.play.textContent = '▶ تشغيل';
+  }
+}
+
+const statsHtml = (rows) => rows.map(([k, v]) => `<span>${k}</span><b>${v}</b>`).join('');
+
+/* ====================================================================== *
+ * Sorting
+ * ====================================================================== */
+const sortState = { steps: [] };
+$('#sort-algo').innerHTML = Object.entries(SORTING)
+  .map(([id, a]) => `<option value="${id}" ${id === 'quick' ? 'selected' : ''}>${a.name}</option>`)
+  .join('');
+
+function renderSortComplexity() {
+  const a = SORTING[$('#sort-algo').value];
+  $('#sort-complexity').innerHTML = `<div class="stats">${statsHtml([
+    ['أفضل حالة', a.complexity.best],
+    ['متوسط', a.complexity.average],
+    ['أسوأ حالة', a.complexity.worst],
+    ['الذاكرة', a.complexity.space],
+    ['مستقر (Stable)', a.stable ? 'نعم' : 'لا'],
+  ])}</div>`;
+}
+
+const sortPlayer = new Player('sorting', (i) => {
+  const step = sortState.steps[i];
+  if (!step) return;
+  const { ctx, w, h } = setupCanvas($('#sort-canvas'));
+  const n = step.arr.length;
+  const max = Math.max(...step.arr, 1);
+  const gap = n > 60 ? 1 : 2;
+  const bw = w / n;
+  const sorted = new Set(step.sorted);
+  const compare = new Set(step.compare ?? []);
+  const swap = new Set(step.swap ?? []);
+  step.arr.forEach((v, idx) => {
+    const bh = (v / max) * (h - 24);
+    ctx.fillStyle = swap.has(idx) ? css('--swap') : compare.has(idx) ? css('--compare') : sorted.has(idx) ? css('--sorted') : css('--bar');
+    // draw left-to-right regardless of page direction (index 0 on the left)
+    ctx.fillRect(idx * bw + gap / 2, h - bh, bw - gap, bh);
+    if (n <= 30) {
+      ctx.fillStyle = css('--muted');
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(v, idx * bw + bw / 2, h - bh - 4);
+    }
+  });
+  $('#sort-stats').innerHTML = statsHtml([
+    ['المقارنات', fmt(step.comparisons)],
+    ['الكتابات', fmt(step.writes)],
+    ['n', n],
+  ]);
+});
+
+function runSorting() {
+  const n = Math.max(5, Math.min(100, Number($('#sort-size').value) || 40));
+  const arr = makeArray(n, $('#sort-input').value, Math.floor(Math.random() * 1e6));
+  sortState.steps = runSort($('#sort-algo').value, arr).steps;
+  renderSortComplexity();
+  sortPlayer.load(sortState.steps.length);
+}
+$('#sort-generate').onclick = runSorting;
+$('#sort-algo').onchange = runSorting;
+$('#sort-input').onchange = runSorting;
+
+/* ====================================================================== *
+ * Path-finding
+ * ====================================================================== */
+const ROWS = 21;
+const COLS = 51;
+const grid = { rows: ROWS, cols: COLS, walls: new Set(), weights: new Set(), start: 0, end: 0 };
+const pathState = { result: null };
+
+function loadGrid(g) {
+  grid.walls = new Set(g.walls);
+  grid.weights = new Set(g.weights);
+  grid.start = g.start;
+  grid.end = g.end;
+  pathState.result = null;
+}
+loadGrid(randomGrid(ROWS, COLS, { seed: 5 }));
+$('#path-algo').innerHTML = Object.entries(PATHFINDING)
+  .map(([id, a]) => `<option value="${id}" ${id === 'astar' ? 'selected' : ''}>${a.name}</option>`)
+  .join('');
+
+const gridInput = () => ({ ...grid, walls: [...grid.walls], weights: [...grid.weights] });
+
+function drawGrid(i = -1) {
+  const canvas = $('#path-canvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const cs = Math.min(w / COLS, h / ROWS);
+  const ox = (w - cs * COLS) / 2;
+  grid.cell = { cs, ox };
+  const res = pathState.result;
+  const visitedUpTo = res ? Math.min(i + 1, res.visited.length) : 0;
+  const pathUpTo = res ? Math.max(0, i + 1 - res.visited.length) : 0;
+  const order = new Map();
+  if (res) for (let k = 0; k < visitedUpTo; k++) order.set(res.visited[k], k);
+  const onPath = new Set(res ? res.path.slice(0, pathUpTo) : []);
+  for (let idx = 0; idx < ROWS * COLS; idx++) {
+    const r = Math.floor(idx / COLS);
+    const c = idx % COLS;
+    let color = '#111827';
+    if (grid.walls.has(idx)) color = css('--wall');
+    else if (onPath.has(idx)) color = css('--path');
+    else if (order.has(idx)) color = order.get(idx) === visitedUpTo - 1 ? '#7fb2ff' : css('--visited');
+    if (grid.weights.has(idx) && !onPath.has(idx)) color = order.has(idx) ? '#a3622a' : css('--weight');
+    if (idx === grid.start) color = css('--sorted');
+    if (idx === grid.end) color = css('--swap');
+    ctx.fillStyle = color;
+    ctx.fillRect(ox + c * cs + 0.5, r * cs + 0.5, cs - 1, cs - 1);
+  }
+  if (res) {
+    const done = i >= res.visited.length + res.path.length - 1;
+    $('#path-stats').innerHTML = statsHtml([
+      ['العقد المزارة', fmt(visitedUpTo)],
+      ['طول المسار', done ? (res.found ? res.path.length : 'لا يوجد مسار') : '…'],
+      ['تكلفة المسار', done && res.found ? res.stats.pathCost : '…'],
+      ['تكلفة الازدحام', `${WEIGHT_COST}× لكل خلية برتقالية`],
+    ]);
+  }
+}
+
+const pathPlayer = new Player('pathfinding', (i) => drawGrid(i));
+
+function runPath() {
+  pathState.result = runPathfinding($('#path-algo').value, gridInput());
+  pathPlayer.load(pathState.result.visited.length + pathState.result.path.length);
+}
+
+function comparePaths() {
+  const rows = Object.entries(PATHFINDING).map(([id, a]) => ({ id, name: a.name, ...runPathfinding(id, gridInput()) }));
+  const best = Math.min(...rows.filter((r) => r.found).map((r) => r.stats.pathCost));
+  $('#path-compare-table').innerHTML = `<table><tr><th>الخوارزمية</th><th class="num">المزارة</th><th class="num">التكلفة</th></tr>${rows
+    .map(
+      (r) =>
+        `<tr class="${r.found && r.stats.pathCost === best ? 'best' : ''}"><td>${r.name}</td><td class="num">${fmt(r.stats.visited)}</td><td class="num">${r.found ? r.stats.pathCost : '—'}</td></tr>`,
+    )
+    .join('')}</table>`;
+}
+
+let painting = false;
+function paint(ev) {
+  if (!grid.cell) return;
+  const rect = $('#path-canvas').getBoundingClientRect();
+  const c = Math.floor((ev.clientX - rect.left - grid.cell.ox) / grid.cell.cs);
+  const r = Math.floor((ev.clientY - rect.top) / grid.cell.cs);
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+  const idx = r * COLS + c;
+  if (idx === grid.start || idx === grid.end) return;
+  const tool = $('#path-tool').value;
+  grid.walls.delete(idx);
+  grid.weights.delete(idx);
+  if (tool === 'wall') grid.walls.add(idx);
+  if (tool === 'weight') grid.weights.add(idx);
+  if (tool === 'start') grid.start = idx;
+  if (tool === 'end') grid.end = idx;
+  pathState.result = null;
+  drawGrid();
+}
+$('#path-canvas').addEventListener('pointerdown', (e) => ((painting = true), paint(e)));
+$('#path-canvas').addEventListener('pointermove', (e) => painting && paint(e));
+window.addEventListener('pointerup', () => (painting = false));
+$('#path-run').onclick = runPath;
+$('#path-compare').onclick = comparePaths;
+$('#path-random').onclick = () => (loadGrid(randomGrid(ROWS, COLS, { seed: Math.floor(Math.random() * 1e6) })), drawGrid(), comparePaths());
+$('#path-clear').onclick = () => (loadGrid({ walls: [], weights: [], start: grid.start, end: grid.end }), drawGrid());
+onShow.pathfinding = () => {
+  drawGrid(pathPlayer.index);
+  if (!pathState.result) {
+    runPath();
+    comparePaths();
+  }
+};
+
+/* ====================================================================== *
+ * CI/CD pipeline (topological sort + critical path)
+ * ====================================================================== */
+const pipeState = { result: null, dag: null };
+const BOX_W = 108;
+const BOX_H = 44;
+
+function pipelineLayout(dag, result) {
+  const cols = [...result.levels];
+  if (result.blocked.length) cols.push(result.blocked);
+  const pos = new Map();
+  const colGap = 128;
+  const width = cols.length * colGap + 20;
+  cols.forEach((col, ci) => {
+    const total = col.length * 70;
+    col.forEach((id, ri) => pos.set(id, { x: 20 + ci * colGap, y: 210 - total / 2 + ri * 70 + 13 }));
+  });
+  return { pos, width };
+}
+
+function renderPipeline(i) {
+  const { result, dag } = pipeState;
+  if (!result) return;
+  const { pos, width } = pipelineLayout(dag, result);
+  const final = i >= result.steps.length;
+  const step = final ? null : result.steps[i];
+  const done = new Set(final ? result.order : step.done.slice(0, -1));
+  const ready = new Set(step ? step.ready : []);
+  const critical = new Set(final ? result.criticalPath : []);
+  const blocked = new Set(result.blocked);
+  const byId = new Map(dag.nodes.map((n) => [n.id, n]));
+  const edgeOnCritical = (a, b) => {
+    const k = result.criticalPath.indexOf(a);
+    return final && k !== -1 && result.criticalPath[k + 1] === b;
+  };
+  let svg = `<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5d6a8f"/></marker></defs>`;
+  for (const [a, b] of dag.edges) {
+    const p = pos.get(a);
+    const q = pos.get(b);
+    const back = q.x <= p.x;
+    const x1 = p.x + BOX_W;
+    const y1 = p.y + BOX_H / 2;
+    const x2 = back ? q.x + BOX_W / 2 : q.x;
+    const y2 = back ? q.y : q.y + BOX_H / 2;
+    const color = edgeOnCritical(a, b) ? css('--swap') : back ? css('--swap') : '#5d6a8f';
+    const d = back
+      ? `M${x1},${y1} C${x1 + 60},${y1 - 160} ${x2},${y2 - 160} ${x2},${y2}`
+      : `M${x1},${y1} C${x1 + 30},${y1} ${x2 - 30},${y2} ${x2},${y2}`;
+    svg += `<path d="${d}" fill="none" stroke="${color}" stroke-width="${color === '#5d6a8f' ? 1.5 : 2.5}" ${back ? 'stroke-dasharray="6 4"' : ''} marker-end="url(#arrow)"/>`;
+  }
+  for (const n of dag.nodes) {
+    const p = pos.get(n.id);
+    let fill = '#222b42';
+    if (blocked.has(n.id)) fill = css('--swap');
+    else if (critical.has(n.id)) fill = css('--swap');
+    else if (step && step.current === n.id) fill = css('--compare');
+    else if (done.has(n.id)) fill = css('--sorted');
+    else if (ready.has(n.id)) fill = css('--ready');
+    const dark = fill !== '#222b42';
+    const sched = result.schedule?.find((s) => s.id === n.id);
+    svg += `<g><rect x="${p.x}" y="${p.y}" width="${BOX_W}" height="${BOX_H}" rx="8" fill="${fill}" stroke="#3a4566"/>
+      <text x="${p.x + BOX_W / 2}" y="${p.y + 18}" text-anchor="middle" font-size="12" fill="${dark ? '#111' : '#e6e9f2'}" font-weight="600">${n.label}</text>
+      <text x="${p.x + BOX_W / 2}" y="${p.y + 34}" text-anchor="middle" font-size="10" fill="${dark ? '#222' : '#8d97b5'}">${n.duration}m${final && sched ? ` · t=${sched.start}→${sched.finish}` : ''}</text></g>`;
+  }
+  result.levels.forEach((_, li) => {
+    svg += `<text x="${20 + li * 128 + BOX_W / 2}" y="16" text-anchor="middle" font-size="11" fill="#8d97b5">Level ${li}</text>`;
+  });
+  const el = $('#pipe-svg');
+  el.setAttribute('viewBox', `0 0 ${Math.max(width, 600)} 420`);
+  el.innerHTML = svg;
+}
+
+const pipePlayer = new Player('pipeline', renderPipeline);
+
+async function runPipeline() {
+  const dag = structuredClone(CI_PIPELINE);
+  if ($('#pipe-cycle').checked) dag.edges.push(['prod', 'install']);
+  const { data, source } = await api('/api/pipeline', { method: 'POST', body: dag }, () => schedulePipeline(dag));
+  pipeState.dag = dag;
+  pipeState.result = data;
+  $('#pipe-stats').innerHTML = statsHtml(
+    data.hasCycle
+      ? [
+          ['الحالة', '❌ يوجد دورة. الخط غير قابل للتنفيذ'],
+          ['مهام عالقة', data.blocked.join(', ')],
+          ['المصدر', source],
+        ]
+      : [
+          ['ترتيب التنفيذ', `${data.order.length} مهمة`],
+          ['مستويات متوازية', data.levels.length],
+          ['زمن تسلسلي', `${data.sequentialTime} دقيقة`],
+          ['زمن مع التوازي', `${data.makespan} دقيقة`],
+          ['تسريع', `${(data.sequentialTime / data.makespan).toFixed(2)}×`],
+          ['المسار الحرج', data.criticalPath.join(' → ')],
+          ['المصدر', source],
+        ],
+  );
+  pipePlayer.load(data.steps.length + 1);
+}
+$('#pipe-run').onclick = runPipeline;
+$('#pipe-cycle').onchange = runPipeline;
+onShow.pipeline = () => (pipeState.result ? renderPipeline(pipePlayer.index) : runPipeline());
+
+/* ====================================================================== *
+ * Load balancing
+ * ====================================================================== */
+const lbState = { sim: null, servers: [] };
+$('#lb-strategy').innerHTML = Object.entries(LB_STRATEGIES)
+  .map(([id, name]) => `<option value="${id}" ${id === 'least-connections' ? 'selected' : ''}>${name}</option>`)
+  .join('');
+
+function parseServers() {
+  const caps = $('#lb-servers').value.split(',').map((s) => Number(s.trim())).filter((x) => x > 0).slice(0, 10);
+  return (caps.length ? caps : [1, 2]).map((capacity, i) => ({ id: `srv-${i + 1}`, capacity }));
+}
+
+const lbPlayer = new Player('lb', (i) => {
+  const { sim, servers } = lbState;
+  if (!sim) return;
+  const step = sim.steps[i];
+  const handled = new Array(servers.length).fill(0);
+  for (let k = 0; k <= i; k++) handled[sim.steps[k].server]++;
+  const { ctx, w, h } = setupCanvas($('#lb-canvas'));
+  const maxActive = Math.max(...sim.stats.peak, 1);
+  const rowH = Math.min(56, (h - 40) / servers.length);
+  const left = 90;
+  const barW = w - left - 140;
+  ctx.font = '13px sans-serif';
+  servers.forEach((s, k) => {
+    const y = 30 + k * rowH;
+    ctx.fillStyle = k === step.server ? css('--compare') : css('--text');
+    ctx.textAlign = 'left';
+    ctx.fillText(`${s.id} (×${s.capacity})`, 6, y + rowH / 2);
+    ctx.fillStyle = '#0b0f18';
+    ctx.fillRect(left, y + 6, barW, rowH - 16);
+    const active = step.active[k];
+    ctx.fillStyle = active > s.capacity ? css('--swap') : css('--sorted');
+    ctx.fillRect(left, y + 6, (active / maxActive) * barW, rowH - 16);
+    const capX = left + (s.capacity / maxActive) * barW;
+    ctx.strokeStyle = css('--compare');
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(capX, y + 2);
+    ctx.lineTo(capX, y + rowH - 6);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = css('--muted');
+    ctx.fillText(`active ${active} · total ${handled[k]}`, left + barW + 8, y + rowH / 2);
+  });
+  ctx.fillStyle = css('--muted');
+  ctx.fillText(
+    `t=${step.time}  request #${step.request} → ${servers[step.server].id}  latency=${step.latency.toFixed(1)}   (dashed line = capacity, red = overloaded)`,
+    6,
+    16,
+  );
+});
+
+async function runLb() {
+  const servers = parseServers();
+  const count = Math.max(20, Math.min(2000, Number($('#lb-count').value) || 300));
+  const requests = generateRequests(count);
+  lbState.servers = servers;
+  lbState.sim = simulateLoadBalancer({ servers, requests, strategy: $('#lb-strategy').value });
+  lbPlayer.load(lbState.sim.steps.length);
+
+  const rows = await Promise.all(
+    Object.keys(LB_STRATEGIES).map(async (strategy) => {
+      const { data, source } = await api(
+        '/api/loadbalance',
+        { method: 'POST', body: { servers, strategy, requestCount: count } },
+        () => simulateLoadBalancer({ servers, requests, strategy }),
+      );
+      return { strategy, stats: data.stats, source };
+    }),
+  );
+  const best = Math.min(...rows.map((r) => r.stats.p99Latency));
+  $('#lb-table').innerHTML = `<table><tr><th>الاستراتيجية</th><th class="num">avg</th><th class="num">p95</th><th class="num">p99</th><th class="num">الطلبات لكل خادم</th><th class="num">الذروة لكل خادم</th></tr>${rows
+    .map(
+      ({ strategy, stats }) =>
+        `<tr class="${stats.p99Latency === best ? 'best' : ''}"><td>${LB_STRATEGIES[strategy]}</td><td class="num">${stats.avgLatency}</td><td class="num">${stats.p95Latency}</td><td class="num">${stats.p99Latency}</td><td class="num">${stats.handled.join(' / ')}</td><td class="num">${stats.peak.join(' / ')}</td></tr>`,
+    )
+    .join('')}</table><p style="color:var(--muted);font-size:12px;margin-top:6px">المصدر: ${rows[0].source}</p>`;
+}
+$('#lb-run').onclick = runLb;
+$('#lb-strategy').onchange = runLb;
+onShow.lb = () => (lbState.sim ? lbPlayer.go(lbPlayer.index) : runLb());
+
+/* ====================================================================== *
+ * Consistent hashing
+ * ====================================================================== */
+const hashState = { nodes: ['node-A', 'node-B', 'node-C'], next: 3, last: null };
+const nodeColor = (name) => PALETTE[(name.charCodeAt(5) - 65) % PALETTE.length];
+const angle = (h) => (h / 2 ** 32) * Math.PI * 2 - Math.PI / 2;
+
+function renderHashing() {
+  const vnodes = Math.max(1, Math.min(200, Number($('#hash-vnodes').value) || 20));
+  const keyCount = Math.max(10, Math.min(5000, Number($('#hash-keys').value) || 400));
+  const ring = new HashRing(hashState.nodes, vnodes);
+  const R = 200;
+  let svg = `<circle r="${R}" fill="none" stroke="#3a4566" stroke-width="2"/>`;
+  const counts = Object.fromEntries(hashState.nodes.map((n) => [n, 0]));
+  for (let k = 0; k < keyCount; k++) {
+    const key = `key-${k}`;
+    const owner = ring.getNode(key);
+    counts[owner]++;
+    const a = angle(hash32(key));
+    svg += `<circle cx="${(R - 22) * Math.cos(a)}" cy="${(R - 22) * Math.sin(a)}" r="2.2" fill="${nodeColor(owner)}" opacity=".8"/>`;
+  }
+  for (const p of ring.ring) {
+    const a = angle(p.hash);
+    svg += `<line x1="${(R - 8) * Math.cos(a)}" y1="${(R - 8) * Math.sin(a)}" x2="${(R + 12) * Math.cos(a)}" y2="${(R + 12) * Math.sin(a)}" stroke="${nodeColor(p.node)}" stroke-width="3"/>`;
+  }
+  svg += `<text text-anchor="middle" y="-6" fill="#e6e9f2" font-size="16">${hashState.nodes.length} servers</text>
+    <text text-anchor="middle" y="16" fill="#8d97b5" font-size="12">${vnodes} vnodes each · ${keyCount} keys</text>`;
+  $('#hash-svg').innerHTML = svg;
+  const ideal = keyCount / hashState.nodes.length;
+  $('#hash-dist').innerHTML = hashState.nodes
+    .map(
+      (n) => `<div class="bar-row"><span style="color:${nodeColor(n)}">${n}</span>
+      <div class="track"><div class="fill" style="width:${Math.min(100, (counts[n] / (ideal * 2)) * 100)}%;background:${nodeColor(n)}"></div></div>
+      <b>${counts[n]}</b></div>`,
+    )
+    .join('') + `<p style="color:var(--muted);font-size:12px">المثالي ≈ ${ideal.toFixed(0)} لكل خادم. زِد عدد الـ vnodes لترى التوزيع يتحسن.</p>`;
+  const l = hashState.last;
+  $('#hash-stats').innerHTML = l
+    ? statsHtml([
+        ['التغيير', l.label],
+        ['Consistent hashing', `${l.consistent.percent}% من المفاتيح انتقلت`],
+        ['hash % N', `${l.modulo.percent}% من المفاتيح انتقلت`],
+        ['النسبة المثالية', `${l.ideal}%`],
+      ])
+    : '<span>أضف أو احذف خادماً لترى كم مفتاحاً سينتقل</span><b></b>';
+}
+
+function changeCluster(after, label) {
+  if (after.length < 1) return;
+  const vnodes = Number($('#hash-vnodes').value) || 20;
+  const keys = Number($('#hash-keys').value) || 400;
+  const res = compareRebalancing(hashState.nodes, after, keys, vnodes);
+  const ideal = ((1 / Math.max(after.length, hashState.nodes.length)) * 100).toFixed(1);
+  hashState.last = { ...res, label, ideal };
+  hashState.nodes = after;
+  renderHashing();
+}
+$('#hash-add').onclick = () => {
+  if (hashState.nodes.length >= PALETTE.length) return;
+  const name = `node-${String.fromCharCode(65 + (hashState.next++ % 26))}`;
+  changeCluster([...hashState.nodes, name], `إضافة ${name}`);
+};
+$('#hash-remove').onclick = () => {
+  const victim = hashState.nodes[hashState.nodes.length - 1];
+  if (hashState.nodes.length > 1) changeCluster(hashState.nodes.slice(0, -1), `حذف ${victim}`);
+};
+$('#hash-reset').onclick = () => {
+  Object.assign(hashState, { nodes: ['node-A', 'node-B', 'node-C'], next: 3, last: null });
+  renderHashing();
+};
+$('#hash-vnodes').onchange = renderHashing;
+$('#hash-keys').onchange = renderHashing;
+onShow.hashing = renderHashing;
+
+/* ====================================================================== *
+ * Line chart (used by autoscaling + benchmark)
+ * ====================================================================== */
+function lineChart(canvas, { series, logX = false, logY = false, xLabel = '', yLabel = '', step = false }) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  const pad = { l: 70, r: 20, t: 20, b: 44 };
+  const pts = series.flatMap((s) => s.points);
+  if (!pts.length) return;
+  const tx = (x) => (logX ? Math.log10(x) : x);
+  const ty = (y) => (logY ? Math.log10(Math.max(y, 1e-3)) : y);
+  const xs = pts.map((p) => tx(p[0]));
+  const ys = pts.map((p) => ty(p[1]));
+  const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+  const [y0, y1] = [logY ? Math.min(...ys) : 0, Math.max(...ys)];
+  const X = (x) => pad.l + ((tx(x) - x0) / (x1 - x0 || 1)) * (w - pad.l - pad.r);
+  const Y = (y) => h - pad.b - ((ty(y) - y0) / (y1 - y0 || 1)) * (h - pad.t - pad.b);
+
+  ctx.strokeStyle = '#2a3450';
+  ctx.fillStyle = css('--muted');
+  ctx.font = '11px sans-serif';
+  ctx.lineWidth = 1;
+  for (let k = 0; k <= 5; k++) {
+    const v = y0 + ((y1 - y0) * k) / 5;
+    const yy = h - pad.b - ((v - y0) / (y1 - y0 || 1)) * (h - pad.t - pad.b);
+    ctx.beginPath();
+    ctx.moveTo(pad.l, yy);
+    ctx.lineTo(w - pad.r, yy);
+    ctx.stroke();
+    const label = logY ? 10 ** v : v;
+    ctx.textAlign = 'right';
+    ctx.fillText(label >= 1000 ? `${(label / 1000).toFixed(label >= 1e4 ? 0 : 1)}k` : +label.toFixed(1), pad.l - 6, yy + 4);
+  }
+  const xTicks = [...new Set(series[0].points.map((p) => p[0]))];
+  const every = Math.ceil(xTicks.length / 12);
+  ctx.textAlign = 'center';
+  xTicks.forEach((x, k) => k % every === 0 && ctx.fillText(x, X(x), h - pad.b + 16));
+  ctx.fillText(xLabel, (pad.l + w - pad.r) / 2, h - 6);
+  ctx.save();
+  ctx.translate(14, (pad.t + h - pad.b) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(yLabel, 0, 0);
+  ctx.restore();
+
+  let legendX = pad.l + 8;
+  for (const s of series) {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = s.dashed ? 1.5 : 2.5;
+    ctx.setLineDash(s.dashed ? [6, 5] : []);
+    ctx.beginPath();
+    s.points.forEach(([x, y], k) => {
+      if (k === 0) ctx.moveTo(X(x), Y(y));
+      else if (step || s.step) {
+        ctx.lineTo(X(x), Y(s.points[k - 1][1]));
+        ctx.lineTo(X(x), Y(y));
+      } else ctx.lineTo(X(x), Y(y));
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = s.color;
+    ctx.fillRect(legendX, pad.t, 12, 4);
+    ctx.textAlign = 'left';
+    ctx.fillText(s.name, legendX + 16, pad.t + 6);
+    legendX += ctx.measureText(s.name).width + 36;
+  }
+}
+
+/* ====================================================================== *
+ * Autoscaling (Kubernetes HPA)
+ * ====================================================================== */
+function loadPattern(kind) {
+  return Array.from({ length: 60 }, (_, t) => {
+    if (kind === 'spike') return t < 15 ? 80 : t < 30 ? 520 : t < 45 ? 260 : 90;
+    if (kind === 'ramp') return 40 + t * 9;
+    return Math.round(260 + 220 * Math.sin((t / 60) * Math.PI * 2 - Math.PI / 2) + (t % 7) * 6);
+  });
+}
+
+function runAutoscale() {
+  const target = Number($('#hpa-target').value) || 50;
+  const min = Number($('#hpa-min').value) || 1;
+  const max = Math.max(min, Number($('#hpa-max').value) || 10);
+  const timeline = simulateAutoscaling({ load: loadPattern($('#hpa-pattern').value), targetPerPod: target, min, max });
+  lineChart($('#hpa-canvas'), {
+    xLabel: 'time (ticks)',
+    yLabel: 'requests / second',
+    series: [
+      { name: 'incoming load (rps)', color: css('--compare'), points: timeline.map((r) => [r.t, r.rps]) },
+      { name: 'capacity = replicas × target', color: css('--sorted'), step: true, points: timeline.map((r) => [r.t, r.replicas * target]) },
+    ],
+  });
+  const overloaded = timeline.filter((r) => r.rps > r.replicas * target).length;
+  const util = timeline.reduce((s, r) => s + r.rps / (r.replicas * target), 0) / timeline.length;
+  $('#hpa-stats').innerHTML = statsHtml([
+    ['أعلى عدد Pods', Math.max(...timeline.map((r) => r.replicas))],
+    ['لحظات تجاوز السعة', `${overloaded} / ${timeline.length}`],
+    ['متوسط الاستغلال', `${(util * 100).toFixed(0)}%`],
+    ['Pod-ticks (التكلفة)', fmt(timeline.reduce((s, r) => s + r.replicas, 0))],
+  ]);
+}
+['#hpa-run'].forEach((s) => ($(s).onclick = runAutoscale));
+['#hpa-pattern', '#hpa-target', '#hpa-min', '#hpa-max'].forEach((s) => ($(s).onchange = runAutoscale));
+onShow.autoscale = runAutoscale;
+
+/* ====================================================================== *
+ * Benchmark (server-side)
+ * ====================================================================== */
+const DEFAULT_BENCH = ['bubble', 'insertion', 'merge', 'quick', 'heap'];
+$('#bench-algos').innerHTML = Object.entries(SORTING)
+  .map(([id, a]) => `<label><input type="checkbox" value="${id}" ${DEFAULT_BENCH.includes(id) ? 'checked' : ''}/> ${a.name}</label>`)
+  .join('');
+const benchState = { rows: null };
+
+function drawBench() {
+  if (!benchState.rows) return;
+  const metric = $('#bench-metric').value;
+  const series = benchState.rows.map((r, k) => ({
+    name: SORTING[r.algorithm].name,
+    color: PALETTE[Object.keys(SORTING).indexOf(r.algorithm) % PALETTE.length],
+    points: r.results.map((p) => [p.n, p[metric]]),
+  }));
+  if (metric !== 'ms') {
+    const ns = benchState.rows[0].results.map((p) => p.n);
+    series.push({ name: 'n²/2', color: '#8d97b5', dashed: true, points: ns.map((n) => [n, (n * n) / 2]) });
+    series.push({ name: 'n·log₂n', color: '#c0c7da', dashed: true, points: ns.map((n) => [n, n * Math.log2(n)]) });
+  }
+  lineChart($('#bench-canvas'), {
+    series,
+    logX: true,
+    logY: $('#bench-log').checked,
+    xLabel: 'n (input size, log scale)',
+    yLabel: { comparisons: 'comparisons', writes: 'writes', ms: 'milliseconds' }[metric],
+  });
+}
+
+async function runBench() {
+  const algos = [...document.querySelectorAll('#bench-algos input:checked')].map((i) => i.value);
+  if (!algos.length) return;
+  const input = $('#bench-input').value;
+  $('#bench-run').disabled = true;
+  try {
+    const out = await Promise.all(
+      algos.map((algorithm) =>
+        api(`/api/benchmark?algorithm=${algorithm}&input=${input}`, {}, () => ({
+          algorithm,
+          instance: 'browser',
+          results: benchmarkSort(algorithm, { input }),
+        })),
+      ),
+    );
+    benchState.rows = out.map((o) => o.data);
+    const instances = [...new Set(out.map((o) => o.data.instance))];
+    $('#bench-source').innerHTML = statsHtml([
+      ['نُفّذ على', instances.join(', ')],
+      ['عدد الطلبات', algos.length],
+      ['المدخلات', input],
+    ]);
+    drawBench();
+  } finally {
+    $('#bench-run').disabled = false;
+  }
+}
+$('#bench-run').onclick = runBench;
+$('#bench-input').onchange = runBench;
+$('#bench-metric').onchange = drawBench;
+$('#bench-log').onchange = drawBench;
+onShow.benchmark = () => (benchState.rows ? drawBench() : runBench());
+
+/* ---------------- boot ---------------- */
+runSorting();
+window.addEventListener('resize', () => {
+  sortPlayer.go(sortPlayer.index);
+  const active = document.querySelector('.tab.active').dataset.tab;
+  if (active !== 'sorting') onShow[active]?.();
+});
+
+})();
+</script>
+</body>
+</html>

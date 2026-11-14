@@ -26,7 +26,11 @@ const PALETTE = ['#4f8cff', '#36c98e', '#f5c84c', '#ff5d6c', '#9b7bff', '#2ec4d6
 const fmt = (n) => (typeof n === 'number' ? n.toLocaleString('en-US') : n);
 
 /* ---------------- API helper with graceful degradation ---------------- */
+// Opened directly from disk (double-click): there is no server, run everything in the browser.
+const STANDALONE = location.protocol === 'file:';
+
 async function api(path, { method = 'GET', body } = {}, fallback) {
+  if (STANDALONE && fallback) return { data: fallback(), source: 'browser' };
   try {
     const res = await fetch(path, {
       method,
@@ -43,6 +47,11 @@ async function api(path, { method = 'GET', body } = {}, fallback) {
 }
 
 async function refreshInstance() {
+  if (STANDALONE) {
+    $('#instance').classList.add('online');
+    $('#instance-text').textContent = 'standalone · browser only';
+    return;
+  }
   try {
     const { data } = await api('/api/info');
     $('#instance').classList.add('online');
@@ -53,7 +62,7 @@ async function refreshInstance() {
   }
 }
 refreshInstance();
-setInterval(refreshInstance, 5000);
+if (!STANDALONE) setInterval(refreshInstance, 5000);
 
 /* ---------------- Tabs ---------------- */
 const onShow = {};
