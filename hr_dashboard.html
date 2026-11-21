@@ -171,6 +171,42 @@
     .kpi .value { font-size: 1.5rem; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ============ اسأل البيانات (فريق الـ Agents) ============ */
+  .ag-settings summary { cursor: pointer; font-weight: 500; }
+  .ag-settings-body { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-top: 12px; }
+  .ag-settings-body .field { flex: 1 1 220px; }
+  .ag-settings-body input, .ag-settings-body select { width: 100%; }
+  .ag-check { display: flex; gap: 6px; align-items: center; font-size: 0.85rem; color: var(--ink-2); }
+  .ag-check input { width: auto; }
+  .ag-note { flex-basis: 100%; }
+  .ag-note a { color: var(--accent); }
+  .ag-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ag-presets button { font-size: 0.85rem; padding: 5px 12px; border-radius: 999px; }
+  .ag-log { display: grid; gap: 12px; }
+  .ag-log:empty { display: none; }
+  .ag-msg { border-radius: 12px; padding: 12px 16px; border: 1px solid var(--border); min-width: 0; overflow-wrap: anywhere; }
+  .ag-msg.user { background: var(--tile); justify-self: start; max-width: 85%; }
+  .ag-msg.bot { background: var(--surface); }
+  .ag-msg.err { border-color: var(--critical); color: var(--critical); }
+  .ag-msg .who { font-size: 0.78rem; color: var(--muted); margin-bottom: 4px; }
+  .ag-msg h1, .ag-msg h2, .ag-msg h3, .ag-msg h4 { margin: 10px 0 4px; font-size: 1rem; }
+  .ag-msg h1 { font-size: 1.15rem; }
+  .ag-msg p { margin: 6px 0; }
+  .ag-msg ul, .ag-msg ol { margin: 6px 0; padding-inline-start: 22px; }
+  .ag-msg table { margin: 8px 0; font-size: 0.82rem; border: 1px solid var(--border); display: block; overflow-x: auto; width: max-content; max-width: 100%; }
+  .ag-msg th, .ag-msg td { border: 1px solid var(--border); white-space: normal; }
+  .ag-msg code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: 0.85em; }
+  .ag-msg blockquote { margin: 6px 0; padding-inline-start: 10px; border-inline-start: 3px solid var(--baseline); color: var(--ink-2); }
+  .ag-msg details { margin-top: 10px; font-size: 0.85rem; color: var(--ink-2); }
+  .ag-msg details summary { cursor: pointer; }
+  .ag-msg details li code { direction: ltr; unicode-bidi: plaintext; }
+  .ag-msg .ag-actions { margin-top: 8px; }
+  .ag-working { display: flex; gap: 8px; align-items: center; color: var(--ink-2); font-size: 0.9rem; }
+  .ag-working::before { content: ""; width: 14px; height: 14px; border: 2px solid var(--baseline); border-top-color: var(--accent); border-radius: 50%; animation: ag-spin 0.8s linear infinite; }
+  @keyframes ag-spin { to { transform: rotate(360deg); } }
+  .ag-ask { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ag-ask input { flex: 1 1 260px; }
 </style>
 </head>
 <body>
@@ -267,6 +303,38 @@
     </div>
   </section>
 
+  <!-- اسأل البيانات: فريق الـ Agents -->
+  <section id="agents">
+    <div class="section-head"><h2>🤖 اسأل البيانات</h2><span class="muted">منسّق يوزّع سؤالك على 5 متخصصين ويعملون على البيانات بعد تطبيق الفلاتر. النتائج توصيات فقط وتتطلب مراجعة بشرية.</span></div>
+    <div class="panel">
+      <details class="ag-settings" id="ag-settings">
+        <summary>⚙️ الإعدادات <span class="muted" id="ag-key-state"></span></summary>
+        <div class="ag-settings-body">
+          <div class="field"><label for="ag-key">مفتاح Anthropic API</label>
+            <input id="ag-key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"></div>
+          <div class="field"><label for="ag-model">النموذج</label>
+            <select id="ag-model">
+              <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (متوازن)</option>
+              <option value="claude-opus-5-5">Claude Opus 5.5 (أعلى جودة)</option>
+              <option value="claude-haiku-5-5">Claude Haiku 5.5 (أقل تكلفة)</option>
+            </select></div>
+          <label class="ag-check"><input type="checkbox" id="ag-remember"> تذكّر المفتاح في هذا المتصفح</label>
+          <button type="button" id="ag-forget">حذف المفتاح</button>
+          <p class="muted ag-note">المفتاح يُرسل مباشرة من متصفحك إلى api.anthropic.com فقط. لا تشارك هذا الملف أو جهازك وفيه مفتاح محفوظ.
+            احصل على مفتاح من <a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">platform.claude.com</a>.</p>
+        </div>
+      </details>
+
+      <div class="ag-presets" id="ag-presets"></div>
+      <div class="ag-log" id="ag-log" aria-live="polite"></div>
+      <form class="ag-ask" id="ag-form">
+        <input id="ag-q" placeholder="اكتب سؤالك عن بيانات الموظفين أو سياسات الشركة..." autocomplete="off" aria-label="السؤال">
+        <button type="submit" class="primary" id="ag-send">إرسال</button>
+        <button type="button" id="ag-clear">مسح المحادثة</button>
+      </form>
+    </div>
+  </section>
+
   <footer>جميع الأسماء والأرقام في هذه اللوحة مولَّدة عشوائياً لأغراض التجربة ولا تمثّل أشخاصاً حقيقيين.</footer>
 </div>
 <div id="tip" hidden></div>
@@ -310,6 +378,7 @@ function mulberry32(a) {
 
 function generateEmployees(n, seed) {
   const r = mulberry32(seed);
+  const rTrain = mulberry32((seed ^ 0x5bd1e995) >>> 0);   // ساعات التدريب (مولّد مستقل حتى لا تتغير بقية البيانات)
   const normal = (m, s) => { let u = 0; while (!u) u = r(); return m + s * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
   const pick = a => a[Math.floor(r() * a.length)];
   const wpick = (a, w) => { let x = r() * w.reduce((s, v) => s + v, 0); for (let i = 0; i < a.length; i++) { x -= w[i]; if (x < 0) return a[i]; } return a[a.length - 1]; };
@@ -339,7 +408,7 @@ function generateEmployees(n, seed) {
     rows.push({
       id: "EMP" + (1001 + i), name: first + " " + pick(LN), gender, age, dept,
       title: titles[ti], city: wpick(CITIES, CITY_W), edu: wpick(EDU, EDU_W), hire, salary, perf,
-      status: exit ? "مستقيل" : "نشط", exit, reason,
+      status: exit ? "مستقيل" : "نشط", exit, reason, training: Math.floor(rTrain() * 80),
     });
   }
   return rows;
@@ -668,7 +737,7 @@ $("add-form").addEventListener("submit", e => {
   DATA.push({
     id: "EMP" + nextId, name, gender: $("a-gender").value, age, dept: $("a-dept").value, title: $("a-title").value,
     city: $("a-city").value, edu: $("a-edu").value, hire: new Date(TODAY), salary, perf: +$("a-perf").value,
-    status: "نشط", exit: null, reason: null,
+    status: "نشط", exit: null, reason: null, training: 0,
   });
   msg.className = "msg ok"; msg.textContent = `تمت إضافة ${name} برقم EMP${nextId}.`;
   $("a-name").value = "";
@@ -699,6 +768,494 @@ new ResizeObserver(entries => {
 }).observe(document.querySelector(".app"));
 
 render();
+</script>
+
+<script>
+/* =====================================================================
+   6) فريق الـ Agents (نفس منطق مجلد hr_agents في نسخة بايثون)
+   كل الأرقام تُحسب بالدوال التالية، والنموذج يفسّر النتائج فقط.
+   ===================================================================== */
+const AG = {
+  MAX_TOOL_ROUNDS: 8, TIMEOUT_MS: 120000, MAX_TOKENS: 16000, HISTORY_TURNS: 6,
+  EFFORT: "medium", ORCH_EFFORT: "medium", API_VERSION: "2026-10-21",
+  FALLBACK_BETA: "server-side-fallback-2026-07-01",
+  FALLBACK_MODELS: new Set(["claude-sonnet-5-5", "claude-opus-5-5"]),
+  HUMAN: "تتطلب مراجعة بشرية", MIN_SAMPLE: 5, GAP: 5.0,
+  KEY_STORE: "hr_agents_api_key", MODEL_STORE: "hr_agents_model",
+};
+// نسخة من ملفات policies/*.md (لأن الملف يعمل بدون خادم)
+const POLICIES = {
+"leave.md": "# سياسة الإجازات\n\n> سياسة افتراضية لأغراض العرض والتجربة.\n\n## الإجازة السنوية\n- يستحق الموظف **21 يوم عمل** إجازة سنوية مدفوعة الأجر في سنواته الخمس الأولى.\n- تصبح الإجازة **30 يوم عمل** بعد إتمام 5 سنوات خدمة متصلة.\n- لا يحق للموظف الحصول على إجازة سنوية قبل إتمام **3 أشهر** من تاريخ التعيين.\n- يُقدَّم طلب الإجازة عبر النظام قبل **14 يوماً** على الأقل، ويعتمده المدير المباشر.\n- يجوز ترحيل **10 أيام** كحد أقصى إلى السنة التالية، وتسقط الأيام الزائدة في 31 مارس.\n\n## الإجازة المرضية\n- أول **30 يوماً** في السنة بأجر كامل، والـ **60 يوماً** التالية بثلاثة أرباع الأجر.\n- يلزم تقديم تقرير طبي معتمد لأي إجازة مرضية تزيد على **يومين** متتاليين.\n\n## إجازات أخرى\n- إجازة الزواج: **5 أيام** مدفوعة الأجر مرة واحدة.\n- إجازة المولود للأب: **3 أيام** مدفوعة الأجر.\n- إجازة الأمومة: **10 أسابيع** مدفوعة الأجر.\n- إجازة الوفاة: **5 أيام** لوفاة قريب من الدرجة الأولى.\n",
+"remote_work.md": "# سياسة العمل عن بُعد\n\n> سياسة افتراضية لأغراض العرض والتجربة.\n\n## الأهلية\n- يحق العمل عن بُعد للموظفين الذين أتموا **6 أشهر** في الشركة وتقييم أدائهم الأخير **3 أو أكثر**.\n- لا تشمل السياسة الوظائف التي تتطلب حضوراً ميدانياً، مثل مشرف المستودع وممثل خدمة العملاء في الفروع.\n\n## عدد الأيام\n- حتى **يومين** أسبوعياً عن بُعد بموافقة المدير المباشر.\n- العمل عن بُعد بالكامل يتطلب موافقة مدير الإدارة وإدارة الموارد البشرية، ويُراجع كل **6 أشهر**.\n\n## الالتزامات\n- التواجد على قنوات التواصل من **9 صباحاً حتى 3 عصراً** (ساعات العمل المشتركة).\n- استخدام أجهزة الشركة والشبكة الآمنة (VPN) فقط.\n- حضور الاجتماعات الحضورية المطلوبة بإشعار مسبق لا يقل عن **24 ساعة**.\n\n## بدل العمل عن بُعد\n- بدل شهري قدره **200** لتغطية الإنترنت، لمن يعمل عن بُعد يومين أسبوعياً أو أكثر.\n",
+"training.md": "# سياسة التدريب والتطوير\n\n> سياسة افتراضية لأغراض العرض والتجربة.\n\n## الحد الأدنى للتدريب\n- يُتوقع أن يحصل كل موظف على **40 ساعة** تدريب سنوياً على الأقل.\n- تُعدّ ساعات التدريب جزءاً من معايير تقييم الأداء السنوي.\n\n## الميزانية\n- ميزانية تدريب سنوية لكل موظف قدرها **5,000**، تُستخدم للدورات والمؤتمرات والشهادات المهنية.\n- الشهادات المهنية التي تتجاوز الميزانية تتطلب موافقة مدير الإدارة.\n\n## الالتزام بعد التدريب\n- إذا تجاوزت تكلفة البرنامج **15,000** يلتزم الموظف بالبقاء **سنة واحدة** بعد انتهائه،\n  وإلا يرد جزءاً من التكلفة يتناسب مع المدة المتبقية.\n\n## طريقة الطلب\n1. يختار الموظف البرنامج ويناقشه مع المدير المباشر.\n2. يُرفع الطلب عبر النظام قبل **30 يوماً** من موعد البرنامج.\n3. تعتمد إدارة الموارد البشرية الطلب خلال **5 أيام عمل**.\n"
+};
+
+/* ---------------------------------------------------------------- الأدوات الحسابية */
+const r1 = (x, nd = 1) => (x == null || Number.isNaN(x)) ? null : +(+x).toFixed(nd);
+const yearsBetween = (a, b) => (b - a) / DAY / 365.25;
+const lastYearDate = () => { const d = new Date(TODAY); d.setFullYear(d.getFullYear() - 1); return d; };
+const byDept = (df, dept) => dept ? df.filter(e => e.dept === dept) : df;
+const groupBy = (arr, fn) => arr.reduce((m, x) => { const k = fn(x); (m.get(k) || m.set(k, []).get(k)).push(x); return m; }, new Map());
+const sortedKeys = m => [...m.keys()].sort((a, b) => String(a).localeCompare(String(b), "ar"));
+const median = a => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+
+function deptTurnoverRates(df) {
+  const ly = lastYearDate(), out = {};
+  for (const [d, g] of groupBy(df, e => e.dept)) {
+    const active = g.filter(e => !e.exit).length;
+    if (!active) continue;
+    out[d] = g.filter(e => e.exit && e.exit >= ly).length / active * 100;
+  }
+  return out;
+}
+
+const TOOLS = {
+  turnover_by_department(df) {
+    const ly = lastYearDate();
+    const rows = sortedKeys(groupBy(df, e => e.dept)).map(d => {
+      const g = df.filter(e => e.dept === d), active = g.filter(e => !e.exit).length;
+      const exits12 = g.filter(e => e.exit && e.exit >= ly).length;
+      return { "القسم": d, "النشطون": active, "إجمالي من ترك العمل": g.filter(e => e.exit).length,
+               "ترك العمل آخر 12 شهر": exits12, "معدل الدوران السنوي %": r1(exits12 / Math.max(active, 1) * 100) };
+    }).sort((a, b) => b["معدل الدوران السنوي %"] - a["معدل الدوران السنوي %"]);
+    const activeAll = df.filter(e => !e.exit).length, exitsAll = df.filter(e => e.exit && e.exit >= ly).length;
+    return { "معدل الدوران العام %": r1(exitsAll / Math.max(activeAll, 1) * 100), "الأقسام": rows };
+  },
+
+  exit_reasons_breakdown(df, dept) {
+    const exited = byDept(df, dept).filter(e => e.exit), total = exited.length;
+    const counts = [...countBy(exited, e => e.reason)].sort((a, b) => b[1] - a[1]);
+    const out = { "القسم": dept || "كل الأقسام", "عدد من ترك العمل": total,
+      "الأسباب": counts.map(([reason, n]) => ({ "السبب": reason, "العدد": n, "النسبة %": r1(n / Math.max(total, 1) * 100) })) };
+    if (!dept && total) {
+      const top = {};
+      for (const [d, g] of groupBy(exited, e => e.dept)) top[d] = [...countBy(g, e => e.reason)].sort((a, b) => b[1] - a[1])[0][0];
+      out["السبب الأول في كل قسم"] = top;
+    }
+    return out;
+  },
+
+  turnover_trend_by_year(df, dept) {
+    const d = byDept(df, dept);
+    const hires = countBy(d, e => e.hire.getFullYear()), exits = countBy(d.filter(e => e.exit), e => e.exit.getFullYear());
+    const years = [...new Set([...hires.keys(), ...exits.keys()])].sort();
+    return { "القسم": dept || "كل الأقسام", "السنوات": years.map(y => {
+      const h = hires.get(y) || 0, x = exits.get(y) || 0;
+      return { "السنة": y, "تعيينات": h, "ترك العمل": x, "الصافي": h - x };
+    }) };
+  },
+
+  tenure_at_exit(df, dept) {
+    const exited = byDept(df, dept).filter(e => e.exit);
+    if (!exited.length) return { "القسم": dept || "كل الأقسام", "عدد من ترك العمل": 0 };
+    const t = exited.map(e => ({ dept: e.dept, y: yearsBetween(e.hire, e.exit) }));
+    const dist = { "أقل من سنة": 0, "1-3 سنوات": 0, "3-5 سنوات": 0, "5 سنوات فأكثر": 0 };
+    t.forEach(({ y }) => dist[y < 1 ? "أقل من سنة" : y < 3 ? "1-3 سنوات" : y < 5 ? "3-5 سنوات" : "5 سنوات فأكثر"]++);
+    const perDept = {};
+    for (const [d, g] of groupBy(t, x => x.dept)) perDept[d] = r1(mean(g.map(x => x.y)));
+    return { "القسم": dept || "كل الأقسام", "عدد من ترك العمل": exited.length,
+             "متوسط مدة الخدمة عند الترك (سنوات)": r1(mean(t.map(x => x.y))), "التوزيع": dist, "متوسط المدة لكل قسم": perDept };
+  },
+
+  // لا تُستخدم الجنس أو العمر أو المدينة في الحساب إطلاقاً
+  risk_scores(df, dept, topN = 10) {
+    const RULES = { "راتب أقل من متوسط نظرائه بأكثر من 10%": 30, "تقييم أداء منخفض (2 أو أقل)": 20,
+      "ساعات تدريب قليلة (أقل من 15)": 15, "مدة خدمة بين سنة و3 سنوات": 15, "قسمه دورانه أعلى من المعدل العام": 20 };
+    const active = df.filter(e => !e.exit);
+    if (!active.length) return { "عدد الموظفين النشطين": 0, "الموظفون": [] };
+    const peer = new Map();
+    for (const [k, g] of groupBy(active, e => e.dept + "|" + e.title)) peer.set(k, mean(g.map(e => e.salary)));
+    const rates = deptTurnoverRates(df);
+    const overall = df.filter(e => e.exit && e.exit >= lastYearDate()).length / Math.max(active.length, 1) * 100;
+    const scored = active.map(e => {
+      const tenure = yearsBetween(e.hire, TODAY);
+      const flags = {
+        "راتب أقل من متوسط نظرائه بأكثر من 10%": e.salary < peer.get(e.dept + "|" + e.title) * 0.9,
+        "تقييم أداء منخفض (2 أو أقل)": e.perf <= 2,
+        "ساعات تدريب قليلة (أقل من 15)": e.training < 15,
+        "مدة خدمة بين سنة و3 سنوات": tenure >= 1 && tenure <= 3,
+        "قسمه دورانه أعلى من المعدل العام": (rates[e.dept] || 0) > overall,
+      };
+      const reasons = Object.keys(flags).filter(k => flags[k]);
+      return { e, score: reasons.reduce((s, k) => s + RULES[k], 0), reasons };
+    });
+    const scope = dept ? scored.filter(x => x.e.dept === dept) : scored;
+    const top = [...scope].sort((a, b) => b.score - a.score || a.e.perf - b.e.perf).slice(0, topN);
+    return {
+      "القسم": dept || "كل الأقسام", "القواعد ونقاطها": RULES, "عدد الموظفين النشطين": scope.length,
+      "عالي الخطر (60 فأكثر)": scope.filter(x => x.score >= 60).length,
+      "متوسط درجة الخطر": r1(mean(scope.map(x => x.score))),
+      "الموظفون": top.map(({ e, score, reasons }) => ({ "الرقم الوظيفي": e.id, "الاسم": e.name, "القسم": e.dept,
+        "المسمى الوظيفي": e.title, "درجة الخطر": score, "الأسباب": reasons })),
+    };
+  },
+
+  salary_gap_by_gender(df, dept) {
+    const active = byDept(df.filter(e => !e.exit), dept);
+    const groups = [];
+    for (const [k, g] of groupBy(active, e => e.dept + "|" + e.title)) {
+      const [d, t] = k.split("|");
+      const m = g.filter(e => e.gender === "ذكر").map(e => e.salary), f = g.filter(e => e.gender === "أنثى").map(e => e.salary);
+      const ok = m.length >= AG.MIN_SAMPLE && f.length >= AG.MIN_SAMPLE;
+      const gap = m.length && f.length ? (mean(m) - mean(f)) / mean(m) * 100 : null;
+      groups.push({ "القسم": d, "المسمى الوظيفي": t, "عدد الذكور": m.length, "عدد الإناث": f.length,
+        "متوسط راتب الذكور": m.length ? r1(mean(m), 0) : null, "متوسط راتب الإناث": f.length ? r1(mean(f), 0) : null,
+        "الفجوة % (موجب = لصالح الذكور)": r1(gap), "العينة كافية": ok, "فجوة لافتة": !!(ok && gap != null && Math.abs(gap) > AG.GAP) });
+    }
+    const cmp = (x, y) => x < y ? -1 : x > y ? 1 : 0;
+    groups.sort((a, b) => Math.abs(b["الفجوة % (موجب = لصالح الذكور)"] || 0) - Math.abs(a["الفجوة % (موجب = لصالح الذكور)"] || 0)
+      || cmp(a["القسم"], b["القسم"]) || cmp(a["المسمى الوظيفي"], b["المسمى الوظيفي"]));
+    return { "القسم": dept || "كل الأقسام", "حد العينة الأدنى لكل جنس": AG.MIN_SAMPLE, "حد الفجوة اللافتة %": AG.GAP,
+      "عدد المجموعات": groups.length, "مجموعات بفجوة لافتة": groups.filter(g => g["فجوة لافتة"]).length,
+      "مجموعات عينتها غير كافية": groups.filter(g => !g["العينة كافية"]).length, "المجموعات (الأكبر فجوة أولاً)": groups.slice(0, 15) };
+  },
+
+  salary_by_education(df, dept) {
+    const active = byDept(df.filter(e => !e.exit), dept);
+    return { "القسم": dept || "كل الأقسام", "المؤهلات": EDU.map(edu => {
+      const s = active.filter(e => e.edu === edu).map(e => e.salary);
+      return s.length ? { "المؤهل": edu, "العدد": s.length, "متوسط الراتب": r1(mean(s), 0), "الوسيط": r1(median(s), 0), "العينة كافية": s.length >= AG.MIN_SAMPLE } : null;
+    }).filter(Boolean) };
+  },
+
+  salary_vs_performance(df, dept) {
+    const active = byDept(df.filter(e => !e.exit), dept);
+    const rows = [...groupBy(active, e => e.perf)].sort((a, b) => a[0] - b[0])
+      .map(([p, g]) => ({ "تقييم الأداء": p, "العدد": g.length, "متوسط الراتب": r1(mean(g.map(e => e.salary)), 0) }));
+    let corr = null;
+    if (active.length > 2) {
+      const xs = active.map(e => e.salary), ys = active.map(e => e.perf), mx = mean(xs), my = mean(ys);
+      let sxy = 0, sxx = 0, syy = 0;
+      xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; syy += (ys[i] - my) ** 2; });
+      if (sxx && syy) corr = r1(sxy / Math.sqrt(sxx * syy), 3);
+    }
+    return { "القسم": dept || "كل الأقسام", "حسب التقييم": rows, "معامل الارتباط بين الراتب والأداء": corr };
+  },
+
+  list_policies() {
+    return { "السياسات": Object.entries(POLICIES).map(([f, text]) => ({ "الملف": f, "العنوان": text.split("\n")[0].replace(/^#+\s*/, "").trim() })) };
+  },
+
+  read_policy(_, __, fileName) {
+    if (!Object.hasOwn(POLICIES, fileName)) return { "خطأ": `الملف غير موجود: ${fileName}`, "المتاح": Object.keys(POLICIES) };
+    return { "الملف": fileName, "المحتوى": POLICIES[fileName] };
+  },
+};
+
+function runTool(name, args, df) {
+  const dept = args.department || null;
+  if (dept && !df.some(e => e.dept === dept))
+    return { "خطأ": `القسم '${dept}' غير موجود في البيانات الحالية (بعد الفلترة).`, "الأقسام المتاحة": [...new Set(df.map(e => e.dept))].sort() };
+  if (!Object.hasOwn(TOOLS, name)) throw new Error(`أداة غير معروفة: ${name}`);
+  if (name === "risk_scores") return TOOLS.risk_scores(df, dept, Math.max(1, Math.min(+args.top_n || 10, 25)));
+  if (name === "read_policy") return TOOLS.read_policy(df, dept, String(args.file_name || ""));
+  return TOOLS[name](df, dept);
+}
+
+/* ---------------------------------------------------------------- تعريفات الأدوات */
+const DEPT_PROP = { department: { type: "string", description: "اسم القسم بالعربية كما في البيانات. اتركه فارغاً لكل الأقسام." } };
+const schema = (name, description, properties = {}, required = []) => ({ name, description, input_schema: { type: "object", properties, required } });
+const TOOL_SPECS = {
+  turnover_by_department: schema("turnover_by_department", "معدل الدوران السنوي لكل قسم (ترك العمل آخر 12 شهر ÷ النشطين) والمعدل العام، مرتبة من الأعلى."),
+  exit_reasons_breakdown: schema("exit_reasons_breakdown", "توزيع أسباب ترك العمل بالعدد والنسبة، والسبب الأول في كل قسم.", DEPT_PROP),
+  turnover_trend_by_year: schema("turnover_trend_by_year", "التعيينات وترك العمل والصافي لكل سنة.", DEPT_PROP),
+  tenure_at_exit: schema("tenure_at_exit", "متوسط مدة الخدمة عند ترك العمل وتوزيعها على شرائح.", DEPT_PROP),
+  risk_scores: schema("risk_scores", "درجة خطر ترك العمل (0-100) للموظفين النشطين بقواعد شفافة، مع أسباب كل موظف. لا تعتمد على الجنس أو العمر أو المدينة.",
+    { ...DEPT_PROP, top_n: { type: "integer", description: "عدد الموظفين الأعلى خطراً (افتراضي 10، أقصى 25)." } }),
+  salary_gap_by_gender: schema("salary_gap_by_gender", "فجوة الرواتب بين الجنسين داخل نفس القسم والمسمى الوظيفي، مع حجم العينة وهل هي كافية.", DEPT_PROP),
+  salary_by_education: schema("salary_by_education", "متوسط ووسيط الرواتب حسب المؤهل.", DEPT_PROP),
+  salary_vs_performance: schema("salary_vs_performance", "متوسط الراتب لكل تقييم أداء ومعامل الارتباط بينهما.", DEPT_PROP),
+  list_policies: schema("list_policies", "قائمة ملفات سياسات الشركة المتاحة وعناوينها."),
+  read_policy: schema("read_policy", "قراءة نص سياسة كاملة باسم ملفها.",
+    { file_name: { type: "string", description: "اسم الملف كما في list_policies، مثل leave.md" } }, ["file_name"]),
+};
+
+/* ---------------------------------------------------------------- تعريف الـ Agents */
+const COMMON_RULES = `
+قواعد ملزمة:
+- اكتب بالعربية الفصحى المختصرة وبتنسيق Markdown (عناوين قصيرة ونقاط وجداول عند الحاجة).
+- كل رقم تذكره يجب أن يأتي من نتيجة أداة. لا تخمّن ولا تحسب أرقاماً جديدة من عندك، ولا تختلق بيانات.
+- البيانات افتراضية وقد تكون مفلترة من المستخدم؛ إذا كانت العينة صغيرة فقل ذلك صراحة.
+- أنت لا تتخذ قرارات تخص أي موظف. كل توصية هي اقتراح يُكتب بجانبه: "(${AG.HUMAN})".
+- إذا أعادت أداة خطأً (مثل اسم قسم غير موجود) فصحّح المدخلات وأعد المحاولة مرة واحدة.
+`;
+const AGENTS = {
+  turnover_analyst: {
+    title: "📉 محلل الدوران",
+    description: "يحلل ترك العمل: معدلات الدوران حسب القسم، الأسباب، الاتجاه السنوي، ومدة الخدمة عند الترك. يعيد أعلى 3 مخاطر مع الدليل الرقمي والتوصيات.",
+    system: "أنت محلل دوران وظيفي في إدارة الموارد البشرية.\nمهمتك: تحديد أعلى 3 مخاطر تتعلق بترك العمل، ولكل خطر: الدليل الرقمي من الأدوات، ثم توصية عملية.\nابدأ بالأدوات العامة ثم تعمّق في القسم المعني إن وُجد."
+      + COMMON_RULES + "- لا تذكر أسماء موظفين.",
+    tools: ["turnover_by_department", "exit_reasons_breakdown", "turnover_trend_by_year", "tenure_at_exit"],
+  },
+  attrition_predictor: {
+    title: "🔮 متنبئ الاستقالات",
+    description: "يحدد الموظفين النشطين الأعلى خطراً لترك العمل بدرجة 0-100 وأسباب كل منهم. يمكن تحديد قسم معين.",
+    system: "أنت متخصص في التنبؤ بخطر الاستقالة.\nاستخدم أداة risk_scores، ثم اعرض أعلى الموظفين خطراً في جدول (الرقم الوظيفي، الاسم، القسم، الدرجة، الأسباب)، ثم 2-3 توصيات وقائية عامة.\nاشرح باختصار قواعد الحساب، وأكّد أنها لا تستخدم الجنس أو العمر أو المدينة.\nاختم بتنبيه: النتيجة إرشادية مبنية على قواعد بسيطة وليست قراراً بشأن أي موظف."
+      + COMMON_RULES,
+    tools: ["risk_scores"],
+  },
+  pay_equity_auditor: {
+    title: "⚖️ مراجع الرواتب",
+    description: "يراجع عدالة الرواتب: الفجوة بين الجنسين داخل نفس الوظيفة، الرواتب حسب المؤهل، وعلاقة الراتب بالأداء.",
+    system: "أنت مراجع عدالة الأجور.\nاعرض الفجوات التي تتجاوز 5% وعينتها كافية فقط كنتائج، مع حجم العينة لكل منها. المجموعات ذات العينة غير الكافية (أقل من 5 لكل جنس) اذكر عددها فقط وارفض الاستنتاج منها.\nعلّق أيضاً على علاقة الراتب بالأداء والمؤهل إن كان السؤال يتطلب ذلك."
+      + COMMON_RULES + "- لا تذكر أسماء موظفين.",
+    tools: ["salary_gap_by_gender", "salary_by_education", "salary_vs_performance"],
+  },
+  policy_assistant: {
+    title: "📘 مساعد السياسات",
+    description: "يجيب عن أسئلة سياسات الشركة (الإجازات، العمل عن بُعد، التدريب) من ملفات السياسات فقط.",
+    system: "أنت مساعد سياسات الموارد البشرية.\nاعرض قائمة السياسات، واقرأ الملف المناسب، ثم أجب فقط مما ورد فيه، واذكر اسم الملف المصدر في آخر الإجابة بصيغة: المصدر: `اسم_الملف`.\nإذا لم تجد الإجابة في الملفات فقل صراحة: \"لم أجد هذه المعلومة في سياسات الشركة المتاحة\"، واقترح التواصل مع إدارة الموارد البشرية. لا تستخدم معلوماتك العامة.\nاكتب بالعربية وباختصار.",
+    tools: ["list_policies", "read_policy"],
+  },
+  report_writer: {
+    title: "📝 كاتب التقارير",
+    description: "يكتب تقريراً تنفيذياً للإدارة من النتائج التي جمعها بقية الـ Agents. مرّر له كل النتائج كاملة في المهمة.",
+    system: "أنت كاتب تقارير تنفيذية لإدارة الموارد البشرية.\nاكتب تقريراً بالعربية بصيغة Markdown بهذه الأقسام بالترتيب:\n# عنوان التقرير\n## الملخص التنفيذي\n## أهم المؤشرات\n## المخاطر\n## التوصيات\n## الخطوات التالية\nاستخدم فقط الأرقام الواردة في المدخلات ولا تضف أرقاماً جديدة. إذا كان قسم ما بلا بيانات فاكتب ذلك. اكتب بجانب كل توصية: "
+      + `"(${AG.HUMAN})". اجعل التقرير في صفحة إلى صفحتين.`,
+    tools: [],
+  },
+};
+const ORCH_SYSTEM = `أنت منسّق فريق Agents للموارد البشرية في لوحة معلومات شركة (بيانات افتراضية).
+لديك فريق من المتخصصين تستدعيهم كأدوات. لا تملك وصولاً مباشراً للبيانات، فكل رقم يجب أن يأتي من أحدهم.
+
+طريقة العمل:
+1. حدّد أي المتخصصين يلزمون للسؤال. إذا كان السؤال يحتاج أكثر من متخصص، فاستدعهم جميعاً في نفس الرد
+   ليعملوا بالتوازي.
+2. اكتب لكل متخصص مهمة واضحة ومحددة (واذكر القسم بالاسم العربي إن وُجد).
+3. عند طلب تقرير: استدعِ أولاً المحللين اللازمين (عادة الدوران والاستقالات والرواتب) بالتوازي، ثم استدعِ
+   ask_report_writer ومرّر له نتائجهم كاملة كما هي في المهمة.
+4. اجمع النتائج في إجابة واحدة بالعربية، مختصرة ومنظمة بـ Markdown، دون تكرار ودون إضافة أرقام لم ترد
+   من المتخصصين. إذا كتب كاتب التقارير تقريراً فاعرضه كما هو.
+5. الأسئلة العامة غير المتعلقة بالموارد البشرية أو بالبيانات: اعتذر بلطف ووضّح ما يمكنك المساعدة فيه.
+6. لا يتخذ الفريق قرارات بشأن الموظفين؛ احتفظ بعبارة "(${AG.HUMAN})" بجانب التوصيات.
+
+الأقسام المتاحة: تقنية المعلومات، المبيعات، الموارد البشرية، المالية، التسويق، العمليات، خدمة العملاء.
+`;
+const ORCH_TOOLS = Object.entries(AGENTS).map(([k, a]) => ({
+  name: `ask_${k}`, description: `${a.title}: ${a.description}`,
+  input_schema: { type: "object", properties: { task: { type: "string", description: "المهمة المطلوبة من هذا المتخصص بالتفصيل." } }, required: ["task"] },
+}));
+
+/* ---------------------------------------------------------------- الاتصال بـ Claude */
+class ApiError extends Error { constructor(msg, status) { super(msg); this.status = status; } }
+
+function apiErrorMessage(status, body, model) {
+  const detail = body?.error?.message || "";
+  if (status === 401) return "مفتاح API غير صالح. تحقق منه في الإعدادات.";
+  if (status === 403) return "المفتاح لا يملك صلاحية لهذا النموذج.";
+  if (status === 404) return `النموذج '${model}' غير متاح لحسابك. جرّب نموذجاً آخر من الإعدادات.`;
+  if (status === 429) return "تم تجاوز حد الطلبات. حاول بعد قليل.";
+  if (status === 400 && /credit balance/i.test(detail)) return "رصيد الحساب غير كافٍ. أضف رصيداً من صفحة Billing في console.";
+  return `خطأ من الخدمة (${status}): ${detail}`;
+}
+
+async function callClaude(cfg, body) {
+  const useFallback = AG.FALLBACK_MODELS.has(cfg.model);
+  const headers = {
+    "content-type": "application/json", "x-api-key": cfg.key, "anthropic-version": AG.API_VERSION,
+    "anthropic-dangerous-direct-browser-access": "true",
+  };
+  if (useFallback) headers["anthropic-beta"] = AG.FALLBACK_BETA;
+  const payload = { model: cfg.model, max_tokens: AG.MAX_TOKENS, ...body, ...(useFallback ? { fallbacks: "default" } : {}) };
+
+  for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), AG.TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers, body: JSON.stringify(payload), signal: ctrl.signal });
+    } catch (err) {
+      clearTimeout(timer);
+      if (attempt < 2) { await new Promise(r => setTimeout(r, 1000 * 2 ** attempt)); continue; }
+      throw new ApiError(err.name === "AbortError" ? "انتهت مهلة الطلب. حاول مرة أخرى أو اطرح سؤالاً أبسط." : "تعذّر الاتصال بخدمة Claude. تحقق من الإنترنت.", 0);
+    }
+    clearTimeout(timer);
+    if (res.ok) return res.json();
+    const retryable = res.status === 429 || res.status >= 500;
+    if (retryable && attempt < 2) {
+      const wait = Math.min(+(res.headers.get("retry-after") || 0) * 1000 || 1000 * 2 ** (attempt + 1), 20000);
+      await new Promise(r => setTimeout(r, wait)); continue;
+    }
+    const errBody = await res.json().catch(() => null);
+    throw new ApiError(apiErrorMessage(res.status, errBody, cfg.model), res.status);
+  }
+}
+
+const textOf = resp => resp.content.filter(b => b.type === "text").map(b => b.text).join("\n").trim();
+
+// حلقة tool use: تستدعي الأدوات بالتوازي وتعيد نتائجها، بحد أقصى MAX_TOOL_ROUNDS
+async function runLoop(cfg, { agent, system, userContent, tools, handler, effort, log, history = [] }) {
+  const messages = [...history, { role: "user", content: userContent }];
+  for (let round = 0; round <= AG.MAX_TOOL_ROUNDS; round++) {
+    const body = { system, messages, output_config: { effort } };
+    if (tools.length) body.tools = tools;
+    if (round === AG.MAX_TOOL_ROUNDS && tools.length) body.tool_choice = { type: "none" };
+    const resp = await callClaude(cfg, body);
+
+    if (resp.stop_reason === "refusal") return (textOf(resp) ? textOf(resp) + "\n\n" : "") + "⚠️ تعذّرت معالجة هذا الطلب.";
+    if (resp.stop_reason !== "tool_use")
+      return textOf(resp) + (resp.stop_reason === "max_tokens" ? "\n\n⚠️ (الإجابة مقطوعة لأنها بلغت الحد الأقصى للطول)" : "");
+
+    // أعِد المحتوى كما هو (بما فيه كتل التفكير) ثم نتائج كل الأدوات في رسالة واحدة
+    messages.push({ role: "assistant", content: resp.content });
+    const calls = resp.content.filter(b => b.type === "tool_use");
+    const results = await Promise.all(calls.map(async b => {
+      log({ agent, kind: b.name.startsWith("ask_") ? "agent" : "tool", name: b.name, detail: JSON.stringify(b.input) });
+      try {
+        const out = await handler(b.name, b.input || {});
+        return { type: "tool_result", tool_use_id: b.id, content: typeof out === "string" ? out : JSON.stringify(out) };
+      } catch (err) {
+        if (err instanceof ApiError && [401, 403].includes(err.status)) throw err;
+        return { type: "tool_result", tool_use_id: b.id, is_error: true, content: `فشل تنفيذ الأداة: ${err.message}` };
+      }
+    }));
+    if (round === AG.MAX_TOOL_ROUNDS - 1) results.push({ type: "text", text: "بلغت الحد الأقصى لاستدعاء الأدوات. اكتب إجابتك النهائية الآن مما لديك." });
+    messages.push({ role: "user", content: results });
+  }
+  return "⚠️ لم يكتمل التحليل ضمن الحد المسموح من الخطوات.";
+}
+
+async function askTeam(cfg, question, df, history, onEvent) {
+  const events = [], outputs = {};
+  const log = ev => { events.push(ev); onEvent(ev); };
+  const handler = async (name, args) => {
+    const key = name.replace(/^ask_/, "");
+    if (!AGENTS[key]) throw new Error(`متخصص غير معروف: ${name}`);
+    const a = AGENTS[key];
+    const out = await runLoop(cfg, { agent: key, system: a.system, userContent: String(args.task || ""),
+      tools: a.tools.map(t => TOOL_SPECS[t]), handler: (n, ar) => runTool(n, ar, df), effort: AG.EFFORT, log });
+    outputs[key] = out;
+    return out;
+  };
+  const scope = `عدد السجلات بعد الفلترة: ${df.length}، الأقسام في البيانات: ${[...new Set(df.map(e => e.dept))].sort().join("، ")}.`;
+  let recent = history.filter(m => m.content).slice(-AG.HISTORY_TURNS);
+  while (recent.length && recent[0].role !== "user") recent.shift();
+  const answer = await runLoop(cfg, { agent: "orchestrator", system: ORCH_SYSTEM, userContent: `${question}\n\n(سياق البيانات: ${scope})`,
+    tools: ORCH_TOOLS, handler, effort: AG.ORCH_EFFORT, log, history: recent });
+  return { answer, events, report: outputs.report_writer || null };
+}
+
+/* ---------------------------------------------------------------- عرض Markdown (آمن: يُهرَّب النص أولاً) */
+function md(src) {
+  const inline = s => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  const lines = String(src).replace(/\r/g, "").split("\n"), out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (/^\s*\|.*\|\s*$/.test(l)) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
+      i--;
+      const cells = r => r.trim().slice(1, -1).split("|").map(c => c.trim());
+      const body = rows.filter(r => !/^\s*\|[\s:|-]+\|\s*$/.test(r));
+      out.push("<table><thead><tr>" + cells(body[0]).map(c => `<th>${inline(c)}</th>`).join("") + "</tr></thead><tbody>"
+        + body.slice(1).map(r => "<tr>" + cells(r).map(c => `<td>${inline(c)}</td>`).join("") + "</tr>").join("") + "</tbody></table>");
+    } else if (/^\s*([-*]|\d+[.)])\s+/.test(l)) {
+      const ordered = /^\s*\d/.test(l), items = [];
+      while (i < lines.length && /^\s*([-*]|\d+[.)])\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*([-*]|\d+[.)])\s+/, ""));
+      i--;
+      out.push(`<${ordered ? "ol" : "ul"}>` + items.map(t => `<li>${inline(t)}</li>`).join("") + `</${ordered ? "ol" : "ul"}>`);
+    } else if (/^#{1,4}\s/.test(l)) {
+      const n = l.match(/^#+/)[0].length;
+      out.push(`<h${n}>${inline(l.replace(/^#+\s*/, ""))}</h${n}>`);
+    } else if (/^>\s?/.test(l)) out.push(`<blockquote>${inline(l.replace(/^>\s?/, ""))}</blockquote>`);
+    else if (/^\s*(-{3,}|\*{3,})\s*$/.test(l)) out.push("<hr>");
+    else if (l.trim()) out.push(`<p>${inline(l)}</p>`);
+  }
+  return out.join("");
+}
+
+/* ---------------------------------------------------------------- الواجهة */
+const ag = { chat: [], busy: false };
+const AG_TITLES = { orchestrator: "🧭 المنسّق", ...Object.fromEntries(Object.entries(AGENTS).flatMap(([k, a]) => [[k, a.title], [`ask_${k}`, a.title]])) };
+const AG_EXAMPLES = ["لماذا الدوران مرتفع في المبيعات؟", "من الموظفون المعرضون للاستقالة في تقنية المعلومات؟",
+  "هل توجد فجوة رواتب بين الجنسين؟", "كم يوم إجازة سنوية يحق لي؟", "اكتب لي تقريراً شهرياً للإدارة"];
+
+function agKeyState() {
+  const has = !!$("ag-key").value.trim();
+  $("ag-key-state").textContent = has ? "· المفتاح جاهز" : "· أدخل مفتاح API للبدء";
+  if (!has) $("ag-settings").open = true;
+}
+
+function agRender() {
+  $("ag-log").innerHTML = ag.chat.map((m, i) => {
+    if (m.role === "user") return `<div class="ag-msg user"><div class="who">أنت</div>${esc(m.content)}</div>`;
+    if (m.role === "error") return `<div class="ag-msg err">⚠️ ${esc(m.content)}</div>`;
+    if (m.role === "working") return `<div class="ag-msg bot"><div class="ag-working">${esc(m.content)}</div></div>`;
+    const trace = m.events?.length ? `<details><summary>🔍 كيف وصل الفريق للإجابة (${m.events.length} استدعاء)</summary><ul>`
+      + m.events.map(ev => ev.kind === "agent"
+          ? `<li><b>${esc(AG_TITLES[ev.agent] || ev.agent)}</b> ← استدعى <b>${esc(AG_TITLES[ev.name] || ev.name)}</b></li>`
+          : `<li><b>${esc(AG_TITLES[ev.agent] || ev.agent)}</b> ← أداة <code>${esc(ev.name)}</code> <code>${esc(ev.detail)}</code></li>`).join("")
+      + "</ul></details>" : "";
+    const report = m.report ? `<div class="ag-actions"><button type="button" data-report="${i}">⬇️ تحميل التقرير (.md)</button></div>` : "";
+    return `<div class="ag-msg bot"><div class="who">🧭 فريق الـ Agents</div>${md(m.content)}${report}${trace}</div>`;
+  }).join("");
+  $("ag-send").disabled = ag.busy;
+  $("ag-presets").querySelectorAll("button").forEach(b => b.disabled = ag.busy);
+}
+
+async function agAsk(question) {
+  question = question.trim();
+  if (!question || ag.busy) return;
+  const key = $("ag-key").value.trim();
+  if (!key) { agKeyState(); $("ag-key").focus(); return; }
+  const cfg = { key, model: $("ag-model").value };
+  const df = filtered();
+  if (!df.length) { ag.chat.push({ role: "error", content: "لا توجد بيانات مطابقة للفلاتر الحالية." }); agRender(); return; }
+
+  const history = ag.chat.filter(m => m.role === "user" || m.role === "assistant").map(m => ({ role: m.role, content: m.content }));
+  ag.chat.push({ role: "user", content: question });
+  const working = { role: "working", content: "الفريق يعمل على سؤالك..." };
+  ag.chat.push(working); ag.busy = true; agRender();
+  $("ag-q").value = "";
+
+  try {
+    const res = await askTeam(cfg, question, df, history, ev => {
+      working.content = ev.kind === "agent"
+        ? `${AG_TITLES.orchestrator} استدعى ${AG_TITLES[ev.name] || ev.name}...`
+        : `${AG_TITLES[ev.agent] || ev.agent} يستخدم ${ev.name}...`;
+      agRender();
+    });
+    ag.chat.splice(ag.chat.indexOf(working), 1, { role: "assistant", content: res.answer || "لم يصل الفريق إلى إجابة.", events: res.events, report: res.report });
+  } catch (err) {
+    ag.chat.splice(ag.chat.indexOf(working), 1);
+    ag.chat.pop();   // احذف السؤال الذي فشل حتى لا يدخل في سياق الأسئلة التالية
+    ag.chat.push({ role: "error", content: err.message || String(err) });
+    $("ag-q").value = question;
+  }
+  ag.busy = false; agRender();
+}
+
+// الإعدادات
+try {
+  const saved = localStorage.getItem(AG.KEY_STORE);
+  if (saved) { $("ag-key").value = saved; $("ag-remember").checked = true; }
+  const model = localStorage.getItem(AG.MODEL_STORE);
+  if (model && [...$("ag-model").options].some(o => o.value === model)) $("ag-model").value = model;
+} catch { /* التخزين المحلي غير متاح */ }
+const agPersist = () => {
+  try {
+    if ($("ag-remember").checked && $("ag-key").value.trim()) localStorage.setItem(AG.KEY_STORE, $("ag-key").value.trim());
+    else localStorage.removeItem(AG.KEY_STORE);
+  } catch { }
+  agKeyState();
+};
+$("ag-key").addEventListener("input", agPersist);
+$("ag-remember").addEventListener("change", agPersist);
+$("ag-model").addEventListener("change", () => { try { localStorage.setItem(AG.MODEL_STORE, $("ag-model").value); } catch { } });
+$("ag-forget").addEventListener("click", () => { $("ag-key").value = ""; $("ag-remember").checked = false; agPersist(); });
+
+$("ag-presets").innerHTML = AG_EXAMPLES.map(q => `<button type="button">${esc(q)}</button>`).join("");
+$("ag-presets").addEventListener("click", e => { if (e.target.tagName === "BUTTON") agAsk(e.target.textContent); });
+$("ag-form").addEventListener("submit", e => { e.preventDefault(); agAsk($("ag-q").value); });
+$("ag-clear").addEventListener("click", () => { if (!ag.busy) { ag.chat = []; agRender(); } });
+$("ag-log").addEventListener("click", e => {
+  const i = e.target.dataset?.report;
+  if (i == null) return;
+  const url = URL.createObjectURL(new Blob([ag.chat[+i].report], { type: "text/markdown;charset=utf-8" }));
+  Object.assign(document.createElement("a"), { href: url, download: "hr_report.md" }).click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+agKeyState();
+agRender();
 </script>
 </body>
 </html>

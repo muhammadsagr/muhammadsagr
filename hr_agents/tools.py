@@ -200,7 +200,7 @@ def salary_gap_by_gender(df: pd.DataFrame, department: str | None = None) -> dic
             "العينة كافية": sufficient,
             "فجوة لافتة": bool(sufficient and gap is not None and abs(gap) > GAP_THRESHOLD),
         })
-    groups.sort(key=lambda r: abs(r["الفجوة % (موجب = لصالح الذكور)"] or 0), reverse=True)
+    groups.sort(key=lambda r: (-abs(r["الفجوة % (موجب = لصالح الذكور)"] or 0), r["القسم"], r["المسمى الوظيفي"]))
     return {
         "القسم": department or "كل الأقسام",
         "حد العينة الأدنى لكل جنس": MIN_SAMPLE,
