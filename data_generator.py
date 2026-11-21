@@ -8,7 +8,8 @@ import subprocess
 import sys
 
 # تثبيت المكتبات المطلوبة تلقائياً إذا لم تكن مثبتة
-REQUIRED = {"streamlit": "streamlit>=1.50", "pandas": "pandas>=2.0", "numpy": "numpy>=1.24", "plotly": "plotly>=5.18"}
+REQUIRED = {"streamlit": "streamlit>=1.50", "pandas": "pandas>=2.0", "numpy": "numpy>=1.24", "plotly": "plotly>=5.18",
+            "anthropic": "anthropic>=2.12"}
 missing = [pkg for mod, pkg in REQUIRED.items() if importlib.util.find_spec(mod) is None]
 if missing:
     print("جاري تثبيت المكتبات المطلوبة:", ", ".join(missing))
@@ -189,8 +190,8 @@ k4.metric("معدل الدوران السنوي", f"{turnover:.1f}%")
 k5.metric("متوسط الراتب", f"{active['الراتب'].mean():,.0f}" if len(active) else "—")
 k6.metric("متوسط الأداء", f"{active['تقييم الأداء'].mean():.2f} / 5" if len(active) else "—")
 
-tab_overview, tab_pay, tab_exits, tab_table, tab_add = st.tabs(
-    ["📊 نظرة عامة", "💰 الرواتب والأداء", "🚪 ترك العمل", "📋 بيانات الموظفين", "➕ إضافة موظف"]
+tab_overview, tab_pay, tab_exits, tab_table, tab_add, tab_agents = st.tabs(
+    ["📊 نظرة عامة", "💰 الرواتب والأداء", "🚪 ترك العمل", "📋 بيانات الموظفين", "➕ إضافة موظف", "🤖 اسأل البيانات"]
 )
 
 # ---------------------------------------------------------------- نظرة عامة
@@ -343,3 +344,81 @@ with tab_add:
             st.session_state.employees = pd.concat([df_all, pd.DataFrame([new_row])], ignore_index=True)
             st.success(f"تمت إضافة {name} برقم EMP{next_id}")
             st.rerun()
+
+
+# ---------------------------------------------------------------- اسأل البيانات (فريق الـ Agents)
+with tab_agents:
+    from hr_agents import ask_team
+    from hr_agents.agents import AGENTS
+    from hr_agents.config import MODEL, find_api_key
+
+    st.subheader("🤖 اسأل فريق الـ Agents")
+    st.caption(
+        "منسّق يوزّع سؤالك على 5 متخصصين: محلل الدوران، متنبئ الاستقالات، مراجع الرواتب، "
+        f"مساعد السياسات، وكاتب التقارير. يعملون على البيانات بعد الفلترة ({len(df)} سجل). "
+        f"النموذج: `{MODEL}`. النتائج توصيات فقط وتتطلب مراجعة بشرية."
+    )
+
+    api_key = find_api_key(st.secrets)
+    if not api_key:
+        st.info(
+            "لتفعيل هذا التبويب أضف مفتاح Anthropic API بإحدى الطريقتين ثم أعد تشغيل التطبيق:\n\n"
+            "1. متغير البيئة `ANTHROPIC_API_KEY`\n"
+            "2. ملف `.streamlit/secrets.toml` يحتوي السطر: `ANTHROPIC_API_KEY = \"...\"`\n\n"
+            "احصل على المفتاح من console.anthropic.com. لا تضع المفتاح داخل الكود."
+        )
+    else:
+        if "agent_chat" not in st.session_state:
+            st.session_state.agent_chat = []   # [{"role", "content", "events", "report"}]
+
+        examples = [
+            "لماذا الدوران مرتفع في المبيعات؟",
+            "من الموظفون المعرضون للاستقالة في تقنية المعلومات؟",
+            "هل توجد فجوة رواتب بين الجنسين؟",
+            "كم يوم إجازة سنوية يحق لي؟",
+            "اكتب لي تقريراً شهرياً للإدارة",
+        ]
+        cols = st.columns(len(examples))
+        preset = next((q for col, q in zip(cols, examples) if col.button(q, width="stretch")), None)
+        if st.session_state.agent_chat and st.button("🗑️ مسح المحادثة"):
+            st.session_state.agent_chat = []
+            st.rerun()
+
+        titles = {f"ask_{k}": v.title for k, v in AGENTS.items()} | {"orchestrator": "🧭 المنسّق"}
+        titles |= {k: v.title for k, v in AGENTS.items()}
+
+        def render_message(i, msg):
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg.get("report"):
+                    st.download_button("⬇️ تحميل التقرير (.md)", msg["report"].encode("utf-8"),
+                                       file_name="hr_report.md", mime="text/markdown", key=f"report_{i}")
+                if msg.get("events"):
+                    with st.expander(f"🔍 كيف وصل الفريق للإجابة ({len(msg['events'])} استدعاء)"):
+                        for ev in msg["events"]:
+                            who = titles.get(ev.agent, ev.agent)
+                            if ev.kind == "agent":
+                                st.markdown(f"**{who}** ← استدعى **{titles.get(ev.name, ev.name)}**")
+                            else:
+                                st.markdown(f"**{who}** ← أداة `{ev.name}` `{ev.detail}`")
+
+        for i, msg in enumerate(st.session_state.agent_chat):
+            render_message(i, msg)
+
+        question = st.chat_input("اكتب سؤالك عن بيانات الموظفين أو سياسات الشركة...") or preset
+        if question:
+            history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.agent_chat]
+            st.session_state.agent_chat.append({"role": "user", "content": question})
+            with st.chat_message("user"):
+                st.markdown(question)
+            with st.spinner("الفريق يعمل على سؤالك..."):
+                result = ask_team(question, df, api_key=api_key, history=history)
+            if result.error:
+                st.session_state.agent_chat.pop()
+                st.error(result.error)
+            else:
+                st.session_state.agent_chat.append({
+                    "role": "assistant", "content": result.answer or "لم يصل الفريق إلى إجابة.",
+                    "events": result.events, "report": result.report,
+                })
+                st.rerun()
